@@ -46,8 +46,8 @@ def setup(device="cpu"):
     cfg.DATASETS.TEST = ()
     cfg.MODEL.DEVICE = device
     cfg.SOLVER.IMS_PER_BATCH = 4
-    cfg.MODEL.PIXEL_MEAN = (0.5, 0.5, 0.5, 0.1)
-    cfg.MODEL.PIXEL_STD = (0.01, 0.01, 0.01, 0.01)
+    cfg.MODEL.PIXEL_MEAN = (0,0,0,0)#(0.5, 0.5, 0.5, 0.1)
+    cfg.MODEL.PIXEL_STD = (1,1,1,1)#(0.01, 0.01, 0.01, 0.01)
 
     # cfg.merge_from_list(args.opts)
     # if '/auto' in cfg.OUTPUT_DIR:
@@ -67,9 +67,9 @@ def main():
     trainer = MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
 
-    import pdb
+    # import pdb
 
-    pdb.set_trace()
+    # pdb.set_trace()
 
     trainer.train()
 

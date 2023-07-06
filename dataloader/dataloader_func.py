@@ -25,20 +25,26 @@ def mapper(dataset_dict):
 
     image_input = np.concatenate((image, depth), axis=2)
 
-    annotations = dataset_dict.pop("annotations")
+    annotations = dataset_dict.pop("annotations") # number of objects in the image 
     num_instances = len(annotations)
     all_instance_keypoints = []
     category_ids = []
-    for i in range(num_instances):
+    total_grasps = 0
+    for i in range(num_instances): 
         keypts_lst = []
         object_dict = annotations[i]
-        keypoints = object_dict["ret"]
-        num_keypoints = len(keypoints) // 3
-        for keypt_idx in range(num_keypoints):
-            keypts_lst.append(keypoints[3 * keypt_idx : 3 * (keypt_idx + 1)])
-        all_instance_keypoints.append(keypts_lst)
-        category_ids.append(OBJECT_DICTS[object_dict["obj_type"]])
+        keypoints = object_dict["ret"] 
+        total_grasps += len(keypoints) 
+        # num_keypoints = len(keypoints)
+        # for keypt_idx in range(num_keypoints):
+        #     keypts_lst.append(keypoints[3 * keypt_idx : 3 * (keypt_idx + 1)])
+        all_instance_keypoints.append(keypoints) 
+        category_ids.append([OBJECT_DICTS[object_dict["obj_type"]]]*len(keypoints))
 
+    all_instance_keypoints = np.concatenate(all_instance_keypoints, axis=0)
+    category_ids = np.concatenate(category_ids, axis = 0)
+    assert all_instance_keypoints.shape == (total_grasps, 4, 3)
+    assert category_ids.shape == (total_grasps,)
     return {
         "image": torch.from_numpy(image_input).permute(2, 0, 1).float(),
         "height": h,

@@ -4,14 +4,14 @@ from copy import copy
 import cv2
 from utils.other_configs import *
 
-import sys, os
-sys.path.append(os.getenv("KGN_DIR"))
-from utils.path_util import get_src_dir
+# import sys, os
+# sys.path.append(os.getenv("KGN_DIR"))
+# from utils.path_util import get_src_dir
 
-DATA_DIR = os.path.join(get_src_dir(), "temp_images")
-os.makedirs(DATA_DIR, exist_ok= True)
+# DATA_DIR = os.path.join(get_src_dir(), "temp_images")
+# os.makedirs(DATA_DIR, exist_ok= True)
 
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+# logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 
 
@@ -21,9 +21,9 @@ def GenKpts(grasp_pose, grasp_width, cam_intr, cam_extr, depth, img_file = None,
     cam_extr: 4x4
     cam_intr: 3x3
     """
-    if img_file:
-        image = cv2.imread(img_file)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
+    # if img_file:
+    #     image = cv2.imread(img_file)
+    #     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
     ret = []
     kpts_3d_ret = []
     kpts_2d_ret = []
@@ -74,9 +74,9 @@ def GenKpts(grasp_pose, grasp_width, cam_intr, cam_extr, depth, img_file = None,
             # print(depth_val, keypt_depth)
             if (depth_val) > keypt_depth:
                 v[i] = 2
-        if ~colli[j]:
-            draw_on_image(image, px, py, v, name = os.path.join(DATA_DIR, f"{img_id}_{obj_id}_{j}.png"))
-        logging.info(f"{img_id}_{obj_id}_{j} done!--------------")
+        # if ~colli[j]:
+        #     draw_on_image(image, px, py, v, name = os.path.join(DATA_DIR, f"{img_id}_{obj_id}_{j}.png"))
+        # logging.info(f"{img_id}_{obj_id}_{j} done!--------------")
         ret.append(np.concatenate(([px], [py], [v]), axis=0).T)
 
     ret = np.array(ret)
