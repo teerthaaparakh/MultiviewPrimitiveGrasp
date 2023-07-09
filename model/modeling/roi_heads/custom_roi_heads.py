@@ -184,8 +184,6 @@ class CustomCascadeROIHeads(CascadeROIHeads):
         if not self.debug:
             del images
         if self.training:
-            
-            import pdb; pdb.set_trace()
             proposals = self.label_and_sample_proposals(proposals, targets)
 
         if self.training:
@@ -195,7 +193,6 @@ class CustomCascadeROIHeads(CascadeROIHeads):
             losses.update(self._forward_keypoint(features, proposals))
             return proposals, losses
         else:
-            # import pdb; pdb.set_trace()
             pred_instances = self._forward_box(features, proposals)
             pred_instances = self.forward_with_given_boxes(features, pred_instances)
             if self.debug:

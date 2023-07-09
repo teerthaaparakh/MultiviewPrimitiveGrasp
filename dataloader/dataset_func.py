@@ -7,12 +7,11 @@ from utils.util import get_area
 from glob import glob
 import json
 from detectron2.data import DatasetCatalog
-from dataloader.gen_kpts import GenKpts
+from dataloader.gen_kpts import generate_keypoints
 from dataloader.seg import generate_bbox
 from detectron2.structures import BoxMode
 
 # dict_keys(['intrinsic', 'camera_poses', 'grasp_poses', 'grasp_widths', 'grasp_collision', 'obj_types', 'obj_dims', 'obj_poses'])
-
 
 def dataset_function() -> list[dict]:
     dataset_dir = get_dataset_dir()
@@ -78,7 +77,7 @@ def dataset_function() -> list[dict]:
                 grasp_width = np.array(grasp_widths[j])
                 grasp_collision = np.array(grasp_collisions[j])
 
-                result = GenKpts(
+                result = generate_keypoints(
                     grasp_pose,
                     grasp_width,
                     cam_int,

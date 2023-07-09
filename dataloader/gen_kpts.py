@@ -13,10 +13,7 @@ from utils.other_configs import *
 
 # logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
-
-
-
-def GenKpts(grasp_pose, grasp_width, cam_intr, cam_extr, depth, img_file = None, obj_id = None, img_id = None, colli = None):
+def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth, img_file = None, obj_id = None, img_id = None, colli = None):
     """
     cam_extr: 4x4
     cam_intr: 3x3
