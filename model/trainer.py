@@ -7,6 +7,8 @@ from dataloader import dataset_func
 from model.configs.config import add_centernet_config
 from detectron2.utils.logger import setup_logger
 
+from IPython import embed
+
 setup_logger()
 
 from detectron2.config import get_cfg
@@ -30,6 +32,7 @@ class MyTrainer(DefaultTrainer):
 
     @classmethod
     def build_train_loader(cls, cfg):
+        
         return build_detection_train_loader(cfg, mapper=mapper)
 
 
@@ -48,6 +51,9 @@ def setup(device="cpu"):
     cfg.SOLVER.IMS_PER_BATCH = 4
     cfg.MODEL.PIXEL_MEAN = (0,0,0,0)#(0.5, 0.5, 0.5, 0.1)
     cfg.MODEL.PIXEL_STD = (1,1,1,1)#(0.01, 0.01, 0.01, 0.01)
+    cfg.MODEL.CENTERNET.NUM_CLASSES = 6
+    cfg.MODEL.ROI_HEADS.NUM_CLASSES = 6
+    cfg.MODEL.KEYPOINT_ON = True
 
     # cfg.merge_from_list(args.opts)
     # if '/auto' in cfg.OUTPUT_DIR:
@@ -71,11 +77,14 @@ def main():
 
     # pdb.set_trace()
 
+    # TODO (TP): ROI pooling turn off and train, ROI pooling on with increased size od bounding box
     trainer.train()
+    
 
     # ##### following are example checks for trainer
     # n = iter(trainer.data_loader)
     # d = next(n)
+    # embed()
     # len(d)                // output: 2
     # d[0].keys()           //output: dict_keys(['image', 'height', 'width', 'instances'])
     # d[0]["image"].shape   //output: torch.Size(4, 480, 640)
@@ -87,4 +96,14 @@ def main():
 
 
 if __name__ == "__main__":
+    # from dataloader.dataset_func import dataset_function
+    
+    # data_list = dataset_function()
+    # for i in data_list:
+    #     print(i)
+    #     res = mapper(i)
+    #     print("\n")
+    # embed()
+    
+    
     main()

@@ -60,8 +60,10 @@ def GenKpts(grasp_pose, grasp_width, cam_intr, cam_extr, depth, img_file = None,
         height_y, width_x = depth.shape
         if (px < 0).all() or (px >= width_x).all():
             logging.warn("Projected keypoint is outside the image [x].")
+            return None
         if (py < 0).all() or (py >= height_y).all():
             logging.warn("Projected keypoint is outside the image [y].")
+            return None
 
         px = np.clip(np.int32(px), 0, width_x - 1)
         py = np.clip(np.int32(py), 0, height_y - 1)
@@ -85,7 +87,7 @@ def GenKpts(grasp_pose, grasp_width, cam_intr, cam_extr, depth, img_file = None,
         4,
         3,
     ), "please check the shape of ret in gen_kpts.py"
-    return ret, np.array(kpts_3d_ret),np.array(kpts_2d_ret)
+    return (ret, np.array(kpts_3d_ret),np.array(kpts_2d_ret))
 
 
 def draw_on_image(image, px, py, v, name=None):

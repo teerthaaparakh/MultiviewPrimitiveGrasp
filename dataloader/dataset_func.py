@@ -9,6 +9,7 @@ import json
 from detectron2.data import DatasetCatalog
 from dataloader.gen_kpts import GenKpts
 from dataloader.seg import generate_bbox
+from detectron2.structures import BoxMode
 
 # dict_keys(['intrinsic', 'camera_poses', 'grasp_poses', 'grasp_widths', 'grasp_collision', 'obj_types', 'obj_dims', 'obj_poses'])
 
@@ -77,14 +78,22 @@ def dataset_function() -> list[dict]:
                 grasp_width = np.array(grasp_widths[j])
                 grasp_collision = np.array(grasp_collisions[j])
 
-                ret, kpts_3d, kpts_2d = GenKpts(
+                result = GenKpts(
                     grasp_pose,
                     grasp_width,
                     cam_int,
                     cam_poses[0],
                     depth=np.load(current_dict["depth_file_name"]),
                 )
-                #ring:1, box:2, cylinder:3, bowl:4, stick:5, sphere:6
+                
+                if result is None:
+                    continue
+                
+                ret, kpts_3d, kpts_2d = result
+                if len(ret[~grasp_collision])==0:
+                    continue
+                
+                # TODO (TP): currently only first keypoint is taken
                 obj_dict = {
                     "obj_pose": obj_pose,
                     "obj_dim": obj_dim,
@@ -93,8 +102,9 @@ def dataset_function() -> list[dict]:
                     "grasp_width": grasp_width[~grasp_collision],
                     "kpts_3d": kpts_3d[~grasp_collision],
                     "kpts_2d": kpts_2d[~grasp_collision],
-                    "ret": ret[~grasp_collision],
-                    # "bbox": 
+                    "keypoints": ret[~grasp_collision][0], 
+                    "bbox":list(bboxes[j+1]),
+                    "bbox_mode": BoxMode.XYXY_ABS   
                 }
 
                 annotations.append(obj_dict)

@@ -21,7 +21,7 @@ def get_bb(mask):
     min_col = max(np.min(col_idx) - MARGIN, 0)
     max_col = min(np.max(col_idx) + MARGIN, width)  #check width and height
     
-    return (min_row, min_col, max_row, max_col)
+    return (min_col, min_row, max_col, max_row)
 
 def draw_bb(ll, image):
     colors = [(255, 0, 0), (0, 255, 240), (0, 255, 0), (0, 0, 255), (240, 240, 0)]
@@ -29,7 +29,7 @@ def draw_bb(ll, image):
 
     image = copy(image)[:, :, ::-1].astype(np.uint8)
     for tu in ll:
-        min_row, min_col, max_row, max_col = tu
+        min_col, min_row, max_col, max_row = tu
         image = cv2.rectangle(
             image, (min_col, min_row), (max_col, max_row), color=yellow, thickness=2)
         

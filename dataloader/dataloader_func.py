@@ -2,7 +2,7 @@ import torch
 import copy
 import cv2
 import numpy as np
-from detectron2.structures import Keypoints, Instances
+from detectron2.structures import Keypoints, Instances, Boxes
 import torch
 from utils.other_configs import *
 
@@ -29,22 +29,26 @@ def mapper(dataset_dict):
     num_instances = len(annotations)
     all_instance_keypoints = []
     category_ids = []
+    obj_box = []
+    # print("num_instances", num_instances)
     total_grasps = 0
     for i in range(num_instances): 
         keypts_lst = []
         object_dict = annotations[i]
-        keypoints = object_dict["ret"] 
+        keypoints = object_dict["keypoints"]
         total_grasps += len(keypoints) 
         # num_keypoints = len(keypoints)
         # for keypt_idx in range(num_keypoints):
         #     keypts_lst.append(keypoints[3 * keypt_idx : 3 * (keypt_idx + 1)])
         all_instance_keypoints.append(keypoints) 
-        category_ids.append([OBJECT_DICTS[object_dict["obj_type"]]]*len(keypoints))
-
-    all_instance_keypoints = np.concatenate(all_instance_keypoints, axis=0)
-    category_ids = np.concatenate(category_ids, axis = 0)
-    assert all_instance_keypoints.shape == (total_grasps, 4, 3)
-    assert category_ids.shape == (total_grasps,)
+        category_ids.append(OBJECT_DICTS[object_dict["obj_type"]])
+        obj_box.append(object_dict["bbox"])
+        
+    # all_instance_keypoints = np.concatenate(category_ids, axis = 0)
+    # category_ids = np.concatenate(category_ids, axis = 0)
+    # assert all_instance_keypoints.shape == (total_grasps, 4, 3)
+    # assert category_ids.shape == (total_grasps,)
+   
     return {
         "image": torch.from_numpy(image_input).permute(2, 0, 1).float(),
         "height": h,
@@ -52,6 +56,7 @@ def mapper(dataset_dict):
         "instances": Instances(
             (h, w),
             gt_classes=torch.tensor(category_ids, dtype=torch.long),
-            gt_keypoints=Keypoints(all_instance_keypoints),
+            gt_boxes=Boxes(np.array(obj_box)),
+            gt_keypoints=Keypoints(np.array(all_instance_keypoints)),
         ),
     }

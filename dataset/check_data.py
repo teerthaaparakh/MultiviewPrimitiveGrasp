@@ -35,8 +35,10 @@ def main(scene_id=0):
     vis = VizServer()
     ViewGrasps(vis, grasp_poses, grasp_widths)
     meshcat_scene(vis, scene_id)
+    
+    
 
 
 if __name__ == "__main__":
-    scene_id = 0
+    scene_id = 3
     main(scene_id)
