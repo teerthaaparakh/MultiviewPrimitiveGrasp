@@ -4,6 +4,7 @@ sys.path.append(os.getenv("KGN_DIR"))
 from utils.path_util import get_config_file_path
 from dataloader.dataloader_func import mapper
 from dataloader import dataset_func
+from our_modeling import roi_head
 from model.configs.config import add_centernet_config
 from detectron2.utils.logger import setup_logger
 
@@ -32,7 +33,7 @@ class MyTrainer(DefaultTrainer):
 
     @classmethod
     def build_train_loader(cls, cfg):
-        
+        # import pdb; pdb.set_trace()
         return build_detection_train_loader(cfg, mapper=mapper)
 
 
@@ -54,6 +55,8 @@ def setup(device="cpu"):
     cfg.MODEL.CENTERNET.NUM_CLASSES = 6
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 6
     cfg.MODEL.KEYPOINT_ON = True
+    cfg.MODEL.ROI_HEADS.NAME = "MyROIHeads"
+
 
     # cfg.merge_from_list(args.opts)
     # if '/auto' in cfg.OUTPUT_DIR:
