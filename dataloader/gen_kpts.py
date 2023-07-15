@@ -4,26 +4,31 @@ from copy import copy
 import cv2
 from utils.other_configs import *
 
-# import sys, os
+import sys, os
 # sys.path.append(os.getenv("KGN_DIR"))
-# from utils.path_util import get_src_dir
+from utils.path_util import get_debug_img_dir
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
-# DATA_DIR = os.path.join(get_src_dir(), "temp_images")
-# os.makedirs(DATA_DIR, exist_ok= True)
-
-# logging.basicConfig(stream=sys.stderr, level=logging.INFO)
-
-def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth, img_file = None, obj_id = None, img_id = None, colli = None):
+def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth, 
+                       draw=False, draw_info=None):
     """
     cam_extr: 4x4
     cam_intr: 3x3
+    draw_info (Optional): img_file, obj_id, img_id, colli
     """
-    # if img_file:
-    #     image = cv2.imread(img_file)
-    #     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
+
+    # TODO (TP): good to break functions into small functions and one final 
+    # function that uses all the other functions, otherwise it is hard to read
+    # and make changes to. 
+    # For example, projcting keypoints can very well be another function
+    # even getting the 3d points for a grasp can be another function
+    # TODO (TP): use variable names to be descriptive and avoid unnecessary keywords 
+    # for example, "ret" in kpts_3d_ret
+     
     ret = []
     kpts_3d_ret = []
     kpts_2d_ret = []
+    valids = []
     for j in range(len(grasp_pose)):
         width = grasp_width[j]
         pose = grasp_pose[j]
@@ -57,34 +62,50 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth, img_f
         height_y, width_x = depth.shape
         if (px < 0).all() or (px >= width_x).all():
             logging.warn("Projected keypoint is outside the image [x].")
-            return None
-        if (py < 0).all() or (py >= height_y).all():
+            projection_valid = False
+        elif (py < 0).all() or (py >= height_y).all():
             logging.warn("Projected keypoint is outside the image [y].")
-            return None
+            projection_valid = False
+        else:
+            projection_valid = True
 
         px = np.clip(np.int32(px), 0, width_x - 1)
         py = np.clip(np.int32(py), 0, height_y - 1)
-
         v = np.ones(4)
-        for i in range(4):
-            depth_val = depth[py[i], px[i]]
-            keypt_depth = kpts_3d_cam[i, 2]
-            # embed()
-            # print(depth_val, keypt_depth)
-            if (depth_val) > keypt_depth:
-                v[i] = 2
-        # if ~colli[j]:
-        #     draw_on_image(image, px, py, v, name = os.path.join(DATA_DIR, f"{img_id}_{obj_id}_{j}.png"))
-        # logging.info(f"{img_id}_{obj_id}_{j} done!--------------")
-        ret.append(np.concatenate(([px], [py], [v]), axis=0).T)
 
-    ret = np.array(ret)
-    assert ret.shape == (
-        len(grasp_pose),
-        4,
-        3,
-    ), "please check the shape of ret in gen_kpts.py"
-    return (ret, np.array(kpts_3d_ret),np.array(kpts_2d_ret))
+        if (not projection_valid) and draw:
+            img_dir = get_debug_img_dir()
+            os.makedirs(img_dir, exist_ok= True)
+            img_file, obj_id, img_id, colli = draw_info
+            image = cv2.imread(img_file)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
+            logging.info("Image saved for debugging.")
+            draw_on_image(image, px, py, v, 
+                          name=os.path.join(img_dir, f"{img_id}_{obj_id}_{j}.png"))
+
+        else:
+            for i in range(4):
+                depth_val = depth[py[i], px[i]]
+                keypt_depth = kpts_3d_cam[i, 2]
+                # embed()
+                # print(depth_val, keypt_depth)
+                if (depth_val) > keypt_depth:
+                    v[i] = 2
+
+            # if ~colli[j]:
+            #     draw_on_image(image, px, py, v, name = os.path.join(DATA_DIR, f"{img_id}_{obj_id}_{j}.png"))
+            # logging.info(f"{img_id}_{obj_id}_{j} done!--------------")
+
+        ret.append(np.concatenate(([px], [py], [v]), axis=0).T)
+        valids.append(projection_valid)
+
+    # ret = np.array(ret)
+    # assert ret.shape == (
+    #     len(grasp_pose),
+    #     4,
+    #     3,
+    # ), "please check the shape of ret in gen_kpts.py"
+    return np.array(valids), np.array(ret), np.array(kpts_3d_ret), np.array(kpts_2d_ret)
 
 
 def draw_on_image(image, px, py, v, name=None):

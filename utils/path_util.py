@@ -6,11 +6,14 @@ def get_src_dir():
 
 
 def get_dataset_dir():
-    return os.path.join(get_src_dir(), "dataset/ps_grasp_multi_1k")
+    return osp.join(get_src_dir(), "dataset/ps_grasp_multi_1k")
 
 
 def get_config_file_path():
-    return os.path.join(get_src_dir(), "model/configs/CenterNet2_R50_1x.yaml")
+    return osp.join(get_src_dir(), "model/configs/CenterNet2_R50_1x.yaml")
+
+def get_debug_img_dir():
+    return osp.join(get_src_dir(), "temp_images")
 
 
 if __name__ == "__main__":
