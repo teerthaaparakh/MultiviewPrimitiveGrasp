@@ -28,6 +28,9 @@ def mapper(dataset_dict):
     annotations = dataset_dict.pop("annotations") # number of objects in the image 
     num_instances = len(annotations)
     all_instance_keypoints = []
+    all_instance_widths = []
+    all_instance_centerpoints = []
+    all_instance_orientation = []
     category_ids = []
     obj_box = []
     # print("num_instances", num_instances)
@@ -36,11 +39,19 @@ def mapper(dataset_dict):
         keypts_lst = []
         object_dict = annotations[i]
         keypoints = object_dict["keypoints"]
+        width = object_dict["grasp_width"]
+        ori = object_dict["ori_clss"]
+        center = object_dict["centers"]       
+         
         total_grasps += len(keypoints) 
         # num_keypoints = len(keypoints)
         # for keypt_idx in range(num_keypoints):
         #     keypts_lst.append(keypoints[3 * keypt_idx : 3 * (keypt_idx + 1)])
         all_instance_keypoints.append(keypoints) 
+        all_instance_orientation.append(ori)
+        all_instance_widths.append(width)
+        all_instance_centerpoints.append(center)
+        
         category_ids.append(OBJECT_DICTS[object_dict["obj_type"]])
         obj_box.append(object_dict["bbox"])
         
@@ -58,5 +69,8 @@ def mapper(dataset_dict):
             gt_classes=torch.tensor(category_ids, dtype=torch.long),
             gt_boxes=Boxes(np.array(obj_box)),
             gt_keypoints=Keypoints(np.array(all_instance_keypoints)),
+            gt_centerpoints=torch.tensor(all_instance_centerpoints),
+            gt_orientations=torch.tensor(all_instance_orientation),      # NCx1
+            gt_widths=torch.tensor(all_instance_widths)   
         ),
     }

@@ -111,7 +111,7 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth,
     #     4,
     #     3,
     # ), "please check the shape of ret in gen_kpts.py"
-    return np.array(valids), np.array(ret), np.array(kpts_3d_ret), np.array(kpts_2d_ret)
+    return np.array(valids), np.array(ret), np.array(kpts_3d_ret), np.array(kpts_2d_ret), np.array(center_ret)
 
 
 def draw_on_image(image, px, py, v, name=None):

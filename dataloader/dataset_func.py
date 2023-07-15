@@ -10,6 +10,7 @@ from detectron2.data import DatasetCatalog
 from dataloader.gen_kpts import generate_keypoints
 from dataloader.seg import generate_bbox
 from detectron2.structures import BoxMode
+from utils.util import get_ori_clss
 
 # dict_keys(['intrinsic', 'camera_poses', 'grasp_poses', 'grasp_widths', 'grasp_collision', 'obj_types', 'obj_dims', 'obj_poses'])
 
@@ -98,12 +99,17 @@ def dataset_function() -> list[dict]:
                     draw_info=(current_dict["file_name"], obj_type, i, None)
                 )
                 
-                projections_valid, ret, kpts_3d, kpts_2d = result
+                projections_valid, ret, kpts_3d, kpts_2d, centers = result
                 
                 valid = np.logical_and(projections_valid, (~grasp_collision))
 
                 if len(ret[valid]) == 0:
                     continue
+                
+                # kpts_3d: (num_grasps, 4, 3)
+                # kpts_2d: (num_grasps, 4, 2)
+                
+                ori_clss = get_ori_clss(kpts_2d)
                 
                 # if len(ret[~grasp_collision])==0:
                 #     continue
@@ -117,6 +123,8 @@ def dataset_function() -> list[dict]:
                     "grasp_width": grasp_width[valid],
                     "kpts_3d": kpts_3d[valid],
                     "kpts_2d": kpts_2d[valid],
+                    "ori_clss": ori_clss[valid][0],
+                    "centers": centers[valid][0],
                     "keypoints": ret[valid][0], 
                     # "grasp_pose": grasp_pose[~grasp_collision],
                     # "grasp_width": grasp_width[~grasp_collision],
@@ -143,4 +151,6 @@ if __name__=="__main__":
 # later, to access the data:
     l = dataset_function()
     datapoint = l[0]
+    kpts_2d = datapoint["annotations"][0]["kpts_2d"]
+    print(kpts_2d.shape)
     
