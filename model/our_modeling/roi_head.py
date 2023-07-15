@@ -232,9 +232,6 @@ class MyROIHeads(ROIHeads):
             In training, a dict of losses.
             In inference, update `instances` with new fields "pred_keypoints" and return it.
         """
-        if not self.keypoint_on:
-            return {} if self.training else instances
-
         if self.training:
             # head is only trained on positive proposals with >=1 visible keypoints.
             instances, _ = select_foreground_proposals(instances, self.num_classes)

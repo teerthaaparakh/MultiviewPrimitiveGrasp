@@ -24,6 +24,7 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth, img_f
     ret = []
     kpts_3d_ret = []
     kpts_2d_ret = []
+    center_ret = []
     for j in range(len(grasp_pose)):
         width = grasp_width[j]
         pose = grasp_pose[j]
@@ -36,6 +37,10 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth, img_f
 
         kpts_3d = pose @ np.concatenate((kpts_local_vertex, np.ones((4, 1))), axis=1).T
         kpts_3d_ret.append(kpts_3d[:3, :].T)
+
+        center = kpts_3d[:3, :].T
+        center = (center[0] + center[3])/2
+        center_ret.append(center)
 
         X_WC = cam_extr
         X_CW = np.linalg.inv(X_WC)

@@ -5,6 +5,7 @@ from utils.path_util import get_config_file_path
 from dataloader.dataloader_func import mapper
 from dataloader import dataset_func
 from our_modeling import roi_head
+from our_modeling import keypoint_head
 from model.configs.config import add_centernet_config
 from detectron2.utils.logger import setup_logger
 
@@ -55,8 +56,10 @@ def setup(device="cpu"):
     cfg.MODEL.CENTERNET.NUM_CLASSES = 6
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 6
     cfg.MODEL.KEYPOINT_ON = True
-    cfg.MODEL.ROI_HEADS.NAME = "MyROIHeads"
-
+    cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS = 4
+    # cfg.MODEL.ROI_HEADS.NAME = "MyROIHeads"
+    # cfg.MODEL.ROI_KEYPOINT_HEAD.NAME = "MyKeypointHead" #KRCNNConvDeconvUpsampleHead default
+    # cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS = 9 + 9 + 9 + 9*2*4 + 2 # hm + width + scale + keypoint offset + center reg
 
     # cfg.merge_from_list(args.opts)
     # if '/auto' in cfg.OUTPUT_DIR:
@@ -71,8 +74,7 @@ def setup(device="cpu"):
 def main():
     cfg = setup()
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-    # import pdb
-    # pdb.set_trace()
+    
     trainer = MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
 
@@ -80,7 +82,8 @@ def main():
 
     # pdb.set_trace()
 
-    # TODO (TP): ROI pooling turn off and train, ROI pooling on with increased size od bounding box
+    # TODO (TP): ROI pooling turn off and train, ROI pooling on with increased size of bounding box
+    # TODO (TP): think of another way to map keypoint to heatmap in keypoint_rcnn_loss
     trainer.train()
     
 
