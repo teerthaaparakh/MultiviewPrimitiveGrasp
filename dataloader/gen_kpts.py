@@ -30,6 +30,7 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth,
     kpts_2d_ret = []
     center_ret = []
     valids = []
+    center_ret = []
     for j in range(len(grasp_pose)):
         width = grasp_width[j]
         pose = grasp_pose[j]
