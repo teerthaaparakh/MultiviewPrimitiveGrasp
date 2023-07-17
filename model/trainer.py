@@ -18,6 +18,12 @@ from detectron2.engine import DefaultTrainer
 from detectron2.data import MetadataCatalog
 from detectron2.data import build_detection_train_loader, build_detection_test_loader
 
+from detectron2.structures import Instances
+
+from model.our_modeling.instances import __newgetitem__
+
+from utils.other_configs import *
+
 MetadataCatalog.get("KGN_dataset").keypoint_names = ["uf", "ub", "lf", "lb"]
 MetadataCatalog.get("KGN_dataset").num_keypoints = 4
 
@@ -56,10 +62,15 @@ def setup(device="cpu"):
     cfg.MODEL.CENTERNET.NUM_CLASSES = 6
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 6
     cfg.MODEL.KEYPOINT_ON = True
-    cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS = 4
-    # cfg.MODEL.ROI_HEADS.NAME = "MyROIHeads"
-    # cfg.MODEL.ROI_KEYPOINT_HEAD.NAME = "MyKeypointHead" #KRCNNConvDeconvUpsampleHead default
-    # cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS = 9 + 9 + 9 + 9*2*4 + 2 # hm + width + scale + keypoint offset + center reg
+    # cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS = 4
+    cfg.MODEL.ROI_HEADS.NAME = "MyROIHeads"
+    cfg.MODEL.ROI_KEYPOINT_HEAD.NAME = "MyKeypointHead" #KRCNNConvDeconvUpsampleHead default
+    cfg.MODEL.ROI_KEYPOINT_HEAD.NORMALIZE_LOSS_BY_VISIBLE_KEYPOINTS = False
+    cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS = None
+    cfg.MODEL.ROI_KEYPOINT_HEAD.LOSS_WEIGHT_TUPLE = (HM_WT, WD_WT)
+    cfg.DATASETS.NUM_BINS = NUM_BINS
+    cfg.MODEL.ROI_HEADS.AVG_NUM_GRASPS = 10
+    cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_OUTPUTS = NUM_BINS + NUM_BINS + NUM_BINS + NUM_BINS*2*4 + 2 # hm + width + scale + keypoint offset + center reg
 
     # cfg.merge_from_list(args.opts)
     # if '/auto' in cfg.OUTPUT_DIR:
@@ -72,15 +83,14 @@ def setup(device="cpu"):
 
 
 def main():
+    
+    Instances.__getitem__ = __newgetitem__
+    
     cfg = setup()
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
     
     trainer = MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
-
-    # import pdb
-
-    # pdb.set_trace()
 
     # TODO (TP): ROI pooling turn off and train, ROI pooling on with increased size of bounding box
     # TODO (TP): think of another way to map keypoint to heatmap in keypoint_rcnn_loss

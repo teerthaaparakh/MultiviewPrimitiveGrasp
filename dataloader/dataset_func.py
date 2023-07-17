@@ -18,7 +18,8 @@ def dataset_function() -> list[dict]:
     dataset_dir = get_dataset_dir()
     list_dict = []
     folder_list = glob(os.path.join(dataset_dir, "*/"), recursive=False)
-
+    
+    
     for i, p in enumerate(folder_list):
         json_path = os.path.join(p, "scene_info.json")
         with open(json_path) as json_file:
@@ -70,16 +71,17 @@ def dataset_function() -> list[dict]:
         cam_int = data["intrinsic"]
         cam_poses = data["camera_poses"]
 
-        total_grasps = len(grasp_poses)
-
+        total_grasps = len(grasp_poses)  
+        
+# bowl, small cylinder,  cuboid, big cylinder, stick    
         for j in range(total_grasps):
 
             # TODO (TP): good to have a comment here for what these 
             # two conditions are checking
             if (j+1 in bboxes) and (get_area(bboxes[j+1]) > 50):
                 
-                obj_pose = np.array(obj_poses[j])
-                obj_dim = np.array(obj_dims[j])
+                obj_pose = np.array(obj_poses[j])  #4x4
+                obj_dim = np.array(obj_dims[j])   #single element array
                 obj_type = obj_types[j]
                 grasp_pose = np.array(grasp_poses[j])
                 grasp_width = np.array(grasp_widths[j])
@@ -114,7 +116,7 @@ def dataset_function() -> list[dict]:
                 # if len(ret[~grasp_collision])==0:
                 #     continue
                 
-                # TODO (TP): currently only first keypoint is taken
+                
                 obj_dict = {
                     "obj_pose": obj_pose,
                     "obj_dim": obj_dim,
@@ -123,9 +125,9 @@ def dataset_function() -> list[dict]:
                     "grasp_width": grasp_width[valid],
                     "kpts_3d": kpts_3d[valid],
                     "kpts_2d": kpts_2d[valid],
-                    "ori_clss": ori_clss[valid][0],
-                    "centers": centers[valid][0],
-                    "keypoints": ret[valid][0], 
+                    "ori_clss": ori_clss[valid],
+                    "centers": centers[valid],
+                    "keypoints": ret[valid], 
                     # "grasp_pose": grasp_pose[~grasp_collision],
                     # "grasp_width": grasp_width[~grasp_collision],
                     # "kpts_3d": kpts_3d[~grasp_collision],
@@ -136,7 +138,7 @@ def dataset_function() -> list[dict]:
                 }
 
                 annotations.append(obj_dict)
-
+        # if(len(annotations) == 3):
         current_dict["annotations"] = annotations
         list_dict.append(current_dict)
 
@@ -152,5 +154,5 @@ if __name__=="__main__":
     l = dataset_function()
     datapoint = l[0]
     kpts_2d = datapoint["annotations"][0]["kpts_2d"]
-    print(kpts_2d.shape)
+    # print(kpts_2d.shape)
     

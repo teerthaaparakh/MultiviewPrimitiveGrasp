@@ -20,9 +20,9 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
     a transpose convolution and bilinear interpolation for upsampling.
     It is described in Sec. 5 of :paper:`Mask R-CNN`.
     """
-    
+
     @configurable
-    def __init__(self, input_shape, *, num_keypoints, conv_dims, **kwargs):
+    def __init__(self, input_shape, *, num_outputs, loss_weight_tuple, conv_dims, **kwargs):
         """
         NOTE: this interface is experimental.
 
@@ -31,8 +31,11 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
             conv_dims: an iterable of output channel counts for each conv in the head
                          e.g. (512, 512, 512) for three convs outputting 512 channels.
         """
-        super().__init__(num_keypoints=num_keypoints, **kwargs)
-        embed()
+      
+        super().__init__(**kwargs)
+        
+        self.loss_weight_tuple = loss_weight_tuple
+        
         # default up_scale to 2.0 (this can be made an option)
         up_scale = 2.0
         in_channels = input_shape.channels
@@ -45,7 +48,7 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
 
         deconv_kernel = 4
         self.score_lowres = ConvTranspose2d(
-            in_channels, num_keypoints, deconv_kernel, stride=2, padding=deconv_kernel // 2 - 1
+            in_channels, num_outputs, deconv_kernel, stride=2, padding=deconv_kernel // 2 - 1
         )
         self.up_scale = up_scale
 
@@ -59,9 +62,34 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
 
     @classmethod
     def from_config(cls, cfg, input_shape):
-        ret = super().from_config(cfg, input_shape)
+        # ret = super().from_config(cfg, input_shape)
+        ret = {}
         ret["input_shape"] = input_shape
         ret["conv_dims"] = cfg.MODEL.ROI_KEYPOINT_HEAD.CONV_DIMS
+        if cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS:
+            ret["num_keypoints"] = cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS
+        else:
+            ret["num_keypoints"] = None
+        ret["num_outputs"] = cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_OUTPUTS
+        ret["loss_weight_tuple"] = cfg.MODEL.ROI_KEYPOINT_HEAD.LOSS_WEIGHT_TUPLE
+    
+        normalize_by_visible = (
+            cfg.MODEL.ROI_KEYPOINT_HEAD.NORMALIZE_LOSS_BY_VISIBLE_KEYPOINTS
+        )  # noqa
+        if not normalize_by_visible:
+            batch_size_per_image = cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE
+            positive_sample_fraction = cfg.MODEL.ROI_HEADS.POSITIVE_FRACTION
+            ret["loss_normalizer"] = (
+                cfg.MODEL.ROI_HEADS.AVG_NUM_GRASPS * batch_size_per_image * positive_sample_fraction
+            )
+        else:
+            ret["loss_normalizer"] = "visible"
+            """
+        loss_normalizer (float or str):
+                If float, divide the loss by `loss_normalizer * #images`.
+                If 'visible', the loss is normalized by the total number of
+                visible keypoints across images."""
+                
         return ret
     
     
@@ -85,9 +113,13 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
             normalizer = (
                 None if self.loss_normalizer == "visible" else num_images * self.loss_normalizer
             )
+            
+            hm_loss, width_loss = kgn_loss(x, instances, normalizer)
+            
             return {
-                "loss_keypoint": kgn_loss(x, instances)
-                * self.loss_weight
+                "loss_hm": hm_loss * self.loss_weight_tuple[0],
+                
+                "loss_width": width_loss * self.loss_weight_tuple[1]
             }
         else:
             keypoint_rcnn_inference(x, instances)
@@ -99,6 +131,8 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
             x = layer(x)
         x = interpolate(x, scale_factor=self.up_scale, mode="bilinear", align_corners=False)
         return x
+    
+    
     
     
 

@@ -63,6 +63,7 @@ def select_proposals_with_visible_keypoints(proposals: List[Instances]) -> List[
     IOU>threshold, then proposals with no visible keypoint are filtered out.
     This strategy seems to make no difference on Detectron and is easier to implement.
     """
+    
     ret = []
     all_num_fg = []
     for proposals_per_image in proposals:
@@ -70,22 +71,24 @@ def select_proposals_with_visible_keypoints(proposals: List[Instances]) -> List[
         if len(proposals_per_image) == 0:
             ret.append(proposals_per_image)
             continue
-        gt_keypoints = proposals_per_image.gt_keypoints.tensor
-        # #fg x K x 3
-        vis_mask = gt_keypoints[:, :, 2] >= 1
-        xs, ys = gt_keypoints[:, :, 0], gt_keypoints[:, :, 1]
-        proposal_boxes = proposals_per_image.proposal_boxes.tensor.unsqueeze(dim=1)  # #fg x 1 x 4
-        # kp_in_box = (
-        #     (xs >= proposal_boxes[:, :, 0])
-        #     & (xs <= proposal_boxes[:, :, 2])
-        #     & (ys >= proposal_boxes[:, :, 1])
-        #     & (ys <= proposal_boxes[:, :, 3])
-        # )
-        kp_in_box = torch.ones_like(xs >= 0)
-        selection = (kp_in_box & vis_mask).any(dim=1)
-        selection_idxs = nonzero_tuple(selection)[0]
-        all_num_fg.append(selection_idxs.numel())
-        ret.append(proposals_per_image[selection_idxs])
+        gt_keypoints = proposals_per_image.gt_keypoints
+        prop_select_idx = []
+        for i, kpt in enumerate(gt_keypoints):
+            # #fg x K x 3
+            vis_mask = kpt.tensor[:, :, 2] >= 1
+            selection = (vis_mask).any(dim=1)
+            
+            if(sum(selection)):
+                prop_select_idx.append(i)
+                selection_idxs = nonzero_tuple(selection)[0]
+                
+                for trg_name in ['gt_keypoints', 'gt_centerpoints', 'gt_orientations', 'gt_widths']:
+                    proposals_per_image._fields[trg_name][i] = proposals_per_image._fields[trg_name][i][selection_idxs]
+         
+             
+        prop_select_idx = torch.tensor(prop_select_idx)   
+        all_num_fg.append(prop_select_idx.numel())
+        ret.append(proposals_per_image[prop_select_idx])
 
     storage = get_event_storage()
     storage.put_scalar("keypoint_head/num_fg_samples", np.mean(all_num_fg))
@@ -233,10 +236,14 @@ class MyROIHeads(ROIHeads):
             In inference, update `instances` with new fields "pred_keypoints" and return it.
         """
         if self.training:
+            
+            # import pdb; pdb.set_trace()
             # head is only trained on positive proposals with >=1 visible keypoints.
             instances, _ = select_foreground_proposals(instances, self.num_classes)
             instances = select_proposals_with_visible_keypoints(instances)
 
+        
+        
         if self.keypoint_pooler is not None:
             features = [features[f] for f in self.keypoint_in_features]
             boxes = [x.proposal_boxes if self.training else x.pred_boxes for x in instances]

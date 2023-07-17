@@ -1,12 +1,14 @@
-import numpy as np 
 from utils.other_configs import *
 import torch
 from torch.nn import functional as F 
 from detectron2.structures import Instances, heatmaps_to_keypoints
 from detectron2.layers import cat
+from detectron2.structures import Keypoints
+from typing import List
+import numpy as np 
 
-
-def kgn_loss(pred, instances):
+def kgn_loss(pred, instances, normalizer=None):
+  
     num_ori = 9
     heatmap_pred = pred[:, : num_ori]  # shape 127, 9, 56, 56
     widths_pred = pred[:, num_ori: 2*num_ori] # shape 127, 9, 56, 56
@@ -22,14 +24,17 @@ def kgn_loss(pred, instances):
     
     for inst in instances: # batch 4 images, take one image
         
-        gt_centerpoints = inst.gt_centerpoints
+        assert isinstance(inst.gt_centerpoints[0], Keypoints)
+        assert inst.gt_centerpoints[0].tensor.shape[0] == inst.gt_orientations[0].shape[0]
+        assert inst.gt_centerpoints[0].tensor.shape[0] == inst.gt_widths[0].shape[0]
+
+        gt_centerpoints = inst.gt_centerpoints  
         gt_orientation = inst.gt_orientations
         gt_widths = inst.gt_widths
-        gt_scales = inst.gt_scales
         prop_boxes = inst.proposal_boxes.tensor
         
         hm_gt, width_htgt = keypoints_to_heatmap(gt_centerpoints, gt_orientation, 
-                                        gt_widths, gt_scales, prop_boxes)
+                                        gt_widths, prop_boxes, heatmap_pred.shape[1:])
 
         heatmaps_gt.append(hm_gt)
         widths_gt.append(width_htgt)
@@ -37,11 +42,14 @@ def kgn_loss(pred, instances):
     # heatmap loss
     heatmaps_gt = torch.cat(heatmaps_gt, axis = 0)
     #per pixel cross entropy loss
-    hm_loss = F.binary_cross_entropy(heatmap_pred, heatmaps_gt, reduction='mean')
+    # hm_loss = F.binary_cross_entropy(heatmap_pred, heatmaps_gt, reduction='sum')
     
+    hm_loss = F.l1_loss(heatmap_pred, heatmaps_gt, reduction='sum')
+    
+    import pdb; pdb.set_trace()
     # widths loss
     widths_gt = torch.cat(widths_gt, axis = 0)
-    width_loss = F.l1_loss(widths_pred, widths_gt)
+    width_loss = F.l1_loss(widths_pred, widths_gt, reduction='sum')
     
     # scale loss
     # TODO (TP): get ground truth scales and calculate error
@@ -52,30 +60,34 @@ def kgn_loss(pred, instances):
     # center reg loss
     # TODO (TP): ??
     
-    loss = HM_WT * hm_loss + WD_WT * width_loss 
+    if normalizer:
+        hm_loss = hm_loss / normalizer
+        width_loss = width_loss / normalizer
     
-    return loss
+    return hm_loss, width_loss
 
 
 def keypoints_to_heatmap(gt_centerpoints, gt_orientation, 
-                                        gt_widths, prop_boxes, 
+                                        gt_widths, prop_boxes, heatmap_shape,
                                         gt_scales=None): # (M,C,56,56)
+
     
     heatmaps = []
     widths = []
     scales = []
-    M, C, H, W = gt_centerpoints.shape
+    C, H, W = heatmap_shape
+    M = len(gt_centerpoints)
     for i in range(M):
-        cen = gt_centerpoints[i]  # NCx3
+        cen = gt_centerpoints[i].tensor  # NCx3
         ori = gt_orientation[i]     # NCx1
-        wi = gt_widths[i]           # NCx1
+        wi = gt_widths[i]          # NCx1
         box = prop_boxes[i]
-        heatmap_ret = np.zeros(C, H, W)
-        width_ret = np.zeros(C, H, W)
+        heatmap_ret = np.zeros((C, H, W))
+        width_ret = np.zeros((C, H, W))
         
         NC = len(cen)
         for j in range(NC):
-            single_center = cen[j]
+            single_center = cen[j][0]
             single_ori = ori[j]
             
             map_x, map_y, in_box = mapper(single_center, box, H)
@@ -86,6 +98,7 @@ def keypoints_to_heatmap(gt_centerpoints, gt_orientation,
         heatmaps.append(heatmap_ret)
         widths.append(width_ret)
     
+ 
     heatmaps = np.array(heatmaps)
     widths = np.array(widths)
         

@@ -1,6 +1,8 @@
 import numpy as np 
 import torch
-from typing import Tuple
+from typing import Any, List, Tuple, Union
+
+
 
 def keypoints_to_heatmap(
     centers: torch.Tensor, rois: torch.Tensor, heatmap_size: int

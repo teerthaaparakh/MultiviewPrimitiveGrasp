@@ -28,7 +28,6 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth,
     ret = []
     kpts_3d_ret = []
     kpts_2d_ret = []
-    center_ret = []
     valids = []
     center_ret = []
     for j in range(len(grasp_pose)):
@@ -44,14 +43,14 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth,
         kpts_3d = pose @ np.concatenate((kpts_local_vertex, np.ones((4, 1))), axis=1).T
         kpts_3d_ret.append(kpts_3d[:3, :].T)
 
-        center = kpts_3d[:3, :].T
-        center = (center[0] + center[3])/2
-        center_ret.append(center)
+        
 
         X_WC = cam_extr
         X_CW = np.linalg.inv(X_WC)
         kpts_3d_cam = X_CW @ kpts_3d
         kpts_3d_cam = kpts_3d_cam[:3, :].T
+        
+        
 
         # iz = np.argsort(pcd_cam[:, -1])[::-1]
         # pcd_cam = pcd_cam[iz]
@@ -64,6 +63,8 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth,
         px = (kpts_3d_cam[:, 0] * fx / kpts_3d_cam[:, 2]) + cx
         py = (kpts_3d_cam[:, 1] * fy / kpts_3d_cam[:, 2]) + cy
         kpts_2d_ret.append(np.concatenate(([px], [py]), axis=0).T)
+        
+        center_ret.append(get_center(kpts_3d, X_CW, cam_intr))
 
         height_y, width_x = depth.shape
         if (px < 0).all() or (px >= width_x).all():
@@ -114,6 +115,25 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth,
     return np.array(valids), np.array(ret), np.array(kpts_3d_ret), np.array(kpts_2d_ret), np.array(center_ret)
 
 
+def get_center(kpts_3d, X_CW, cam_intr):
+    center = kpts_3d[:3, :].T
+    center = (center[0] + center[3])/2
+    
+    center_cam = X_CW @ np.array([*center, 1])
+    center_cam = center_cam[:3] 
+
+    fx = cam_intr[0, 0]
+    fy = cam_intr[1, 1]
+    cx = cam_intr[0, 2]
+    cy = cam_intr[1, 2]
+
+    px = (center_cam[0] * fx / center_cam[2]) + cx
+    py = (center_cam[1] * fy / center_cam[2]) + cy
+    return [px, py, 2]
+        
+    
+    
+
 def draw_on_image(image, px, py, v, name=None):
     colors = [(255, 0, 0), (0, 255, 240), (0, 255, 0), (0, 0, 255), (240, 240, 0)]
     yellow = (255, 255, 240)
@@ -136,7 +156,6 @@ def draw_on_image(image, px, py, v, name=None):
         cv2.imwrite(name, image)
         
     return image
-
 
 # if __name__ == "__main__":
 #     import sys, os, json

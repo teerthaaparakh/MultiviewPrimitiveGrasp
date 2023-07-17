@@ -2,7 +2,9 @@ import torch
 import copy
 import cv2
 import numpy as np
-from detectron2.structures import Keypoints, Instances, Boxes
+from detectron2.structures import Keypoints, Boxes, Instances
+import sys, os
+sys.path.append(os.environ["KGN_DIR"])
 import torch
 from utils.other_configs import *
 
@@ -34,32 +36,24 @@ def mapper(dataset_dict):
     category_ids = []
     obj_box = []
     # print("num_instances", num_instances)
-    total_grasps = 0
     for i in range(num_instances): 
-        keypts_lst = []
+     
         object_dict = annotations[i]
-        keypoints = object_dict["keypoints"]
-        width = object_dict["grasp_width"]
-        ori = object_dict["ori_clss"]
-        center = object_dict["centers"]       
-         
-        total_grasps += len(keypoints) 
-        # num_keypoints = len(keypoints)
-        # for keypt_idx in range(num_keypoints):
-        #     keypts_lst.append(keypoints[3 * keypt_idx : 3 * (keypt_idx + 1)])
-        all_instance_keypoints.append(keypoints) 
-        all_instance_orientation.append(ori)
-        all_instance_widths.append(width)
-        all_instance_centerpoints.append(center)
+        # it can have multiple keypoint sets
+        keypoints = object_dict["keypoints"] 
+        width = object_dict["grasp_width"] # 5 length vector
+        ori = object_dict["ori_clss"]   # 5 length vector
+        center = object_dict["centers"] # 5x2
+        center = center[:, None, :]  #5x1x2
+        
+        all_instance_keypoints.append(Keypoints(np.array(keypoints)))
+        all_instance_orientation.append(torch.tensor(ori))
+        all_instance_widths.append(torch.tensor(width)) 
+        all_instance_centerpoints.append(Keypoints(np.array(center)))
         
         category_ids.append(OBJECT_DICTS[object_dict["obj_type"]])
-        obj_box.append(object_dict["bbox"])
-        
-    # all_instance_keypoints = np.concatenate(category_ids, axis = 0)
-    # category_ids = np.concatenate(category_ids, axis = 0)
-    # assert all_instance_keypoints.shape == (total_grasps, 4, 3)
-    # assert category_ids.shape == (total_grasps,)
-   
+        obj_box.append(object_dict["bbox"])        
+
     return {
         "image": torch.from_numpy(image_input).permute(2, 0, 1).float(),
         "height": h,
@@ -68,9 +62,21 @@ def mapper(dataset_dict):
             (h, w),
             gt_classes=torch.tensor(category_ids, dtype=torch.long),
             gt_boxes=Boxes(np.array(obj_box)),
-            gt_keypoints=Keypoints(np.array(all_instance_keypoints)),
-            gt_centerpoints=torch.tensor(all_instance_centerpoints),
-            gt_orientations=torch.tensor(all_instance_orientation),      # NCx1
-            gt_widths=torch.tensor(all_instance_widths)   
+            gt_keypoints=all_instance_keypoints,
+            gt_centerpoints=all_instance_centerpoints,
+            gt_orientations=all_instance_orientation,      # NCx1
+            gt_widths=all_instance_widths   
         ),
     }
+
+
+if __name__=="__main__":
+    from dataset_func import dataset_function
+    
+    ll = dataset_function()
+    
+    dd = mapper(ll[0])
+    import pdb; pdb.set_trace()
+    
+    
+    
