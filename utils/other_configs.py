@@ -12,6 +12,8 @@ OBJECT_DICTS = {
     "stick": 5,
 }
 
+NUM_TRAINING_DATA = 1000
+
 NUM_BINS = 9
 
 HM_WT = 0.5
