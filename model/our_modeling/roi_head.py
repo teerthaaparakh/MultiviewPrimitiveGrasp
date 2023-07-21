@@ -246,8 +246,10 @@ class MyROIHeads(ROIHeads):
         
         if self.keypoint_pooler is not None:
             features = [features[f] for f in self.keypoint_in_features]
-            boxes = [x.proposal_boxes if self.training else x.pred_boxes for x in instances]
+            boxes = [x.proposal_boxes if self.training else x.proposal_boxes for x in instances]
             features = self.keypoint_pooler(features, boxes)
         else:
             features = {f: features[f] for f in self.keypoint_in_features}
+            
+        
         return self.keypoint_head(features, instances)

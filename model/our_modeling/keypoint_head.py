@@ -123,10 +123,10 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
             }
         else:
             keypoint_rcnn_inference(x, instances)
+            
             return instances
-        
 
-    def layers(self, x): # yahi to hai layers jiska output ab num instance x 9+ 9+  x 56 x56 hoga
+    def layers(self, x): 
         for layer in self:
             x = layer(x)
         x = interpolate(x, scale_factor=self.up_scale, mode="bilinear", align_corners=False)

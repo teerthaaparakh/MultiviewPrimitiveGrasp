@@ -7,7 +7,6 @@ from utils.util import get_area
 from utils.other_configs import *
 from glob import glob
 import json
-from detectron2.data import DatasetCatalog
 from dataloader.gen_kpts import generate_keypoints
 from dataloader.seg import generate_bbox
 from detectron2.structures import BoxMode
@@ -16,8 +15,8 @@ import random
 
 # dict_keys(['intrinsic', 'camera_poses', 'grasp_poses', 'grasp_widths', 'grasp_collision', 'obj_types', 'obj_dims', 'obj_poses'])
 
-def dataset_function() -> list[dict]:
-    total_num_data = NUM_TRAINING_DATA
+def dataset_function(total_num_data) -> list[dict]:
+    # total_num_data = NUM_TRAINING_DATA
     dataset_dir = get_dataset_dir()   
     list_dict = [] 
     files_list = sorted(glob(os.path.join(dataset_dir ,"*/color_images/*.png"), recursive=True))
@@ -30,7 +29,6 @@ def dataset_function() -> list[dict]:
         split1 = ppath.split('/')
         p = os.path.join(dataset_dir, split1[-3])
         imgid = int(split1[-1].split('.')[0].split('_')[-1])
-        print(ppath, p, imgid, "\n")
         json_path = os.path.join(p, "scene_info.json")
         with open(json_path) as json_file:
             data = json.load(json_file)
@@ -135,7 +133,7 @@ def dataset_function() -> list[dict]:
     return list_dict
 
 
-DatasetCatalog.register("KGN_dataset", dataset_function)
+
 
 
 if __name__=="__main__":
