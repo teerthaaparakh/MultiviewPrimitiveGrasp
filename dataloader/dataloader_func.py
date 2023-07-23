@@ -71,12 +71,13 @@ def mapper(dataset_dict):
 
 
 if __name__=="__main__":
+    
     from dataset_func import dataset_function
     
     ll = dataset_function()
     
     dd = mapper(ll[0])
-    import pdb; pdb.set_trace()
+    
     
     
     

@@ -7,8 +7,8 @@ from utils.util import get_area
 from utils.other_configs import *
 from glob import glob
 import json
-from dataloader.gen_kpts import generate_keypoints
-from dataloader.seg import generate_bbox
+from utils.gen_kpts import generate_keypoints
+from utils.seg import generate_bbox
 from detectron2.structures import BoxMode
 from utils.util import get_ori_clss
 import random
