@@ -27,6 +27,7 @@ def dataset_function(total_num_data) -> list[dict]:
     for i, ppath in enumerate(indexed_files):
         
         split1 = ppath.split('/')
+        scene_id = int(split1[-3])
         p = os.path.join(dataset_dir, split1[-3])
         imgid = int(split1[-1].split('.')[0].split('_')[-1])
         json_path = os.path.join(p, "scene_info.json")
@@ -41,7 +42,8 @@ def dataset_function(total_num_data) -> list[dict]:
             "height": 480,
             "width": 640,
             "image_id": i,
-            "seg_file_name": os.path.join(p, f"seg_labels/segmask_label_{imgid}.jpg")
+            "seg_file_name": os.path.join(p, f"seg_labels/segmask_label_{imgid}.jpg"),
+            "scene_id": scene_id
         }
 
         bboxes = generate_bbox(current_dict["seg_file_name"])
@@ -58,6 +60,9 @@ def dataset_function(total_num_data) -> list[dict]:
 
         cam_int = data["intrinsic"]
         cam_poses = data["camera_poses"]
+        
+        current_dict["cam_ext"]= cam_poses[imgid]
+        current_dict["cam_int"] = cam_int
 
         total_grasps = len(grasp_poses)  
         
