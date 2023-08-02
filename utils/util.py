@@ -36,7 +36,7 @@ def get_ori_clss(kpts_2d, ori_range=[-np.pi / 2, np.pi / 2]):
     
 def get_grasp_features(instances):
     ret = []
-    for inst in instances:
+    for inst in range(len(instances)):
         # get the centers points location relative to bounding box
         instances[inst].gt_centerpoints.tensor[:,0][:,0] = instances[inst].gt_centerpoints.tensor[:,0][:,0] \
                                                             - instances[inst].gt_boxes.tensor[:,0]
@@ -51,8 +51,8 @@ def get_grasp_features(instances):
         #                                             - instances[inst].gt_boxes.tensor[:,1][:, None]  
                                                     
         # scale centers and keypoints with heights and widths
-        widths = instances[0].gt_boxes.tensor[:,2] - instances[0].gt_boxes.tensor[:,0]
-        heights = instances[0].gt_boxes.tensor[:,3] - instances[0].gt_boxes.tensor[:,1]
+        widths = instances[inst].gt_boxes.tensor[:,2] - instances[inst].gt_boxes.tensor[:,0]
+        heights = instances[inst].gt_boxes.tensor[:,3] - instances[inst].gt_boxes.tensor[:,1]
         
         instances[inst].gt_centerpoints.tensor[:,0][:,0] = instances[inst].gt_centerpoints.tensor[:,0][:,0]/widths
         instances[inst].gt_centerpoints.tensor[:,0][:,1] = instances[inst].gt_centerpoints.tensor[:,0][:,1]/heights
@@ -64,7 +64,7 @@ def get_grasp_features(instances):
                                             instances[inst].gt_centerpoints.tensor[:,0][:, 0:2]), axis = 1)
         ret.append(concat_features)
         
-    return torch.stack(ret)
+    return torch.cat(ret, axis=0)
         
         
 def custom_random_generator(array, max_items):

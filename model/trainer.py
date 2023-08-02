@@ -132,7 +132,7 @@ def setup(device="cpu", config_fname=None):
     cfg.MODEL.ROI_KEYPOINT_HEAD.USE_VAE = True
     if cfg.MODEL.ROI_KEYPOINT_HEAD.USE_VAE:
         cfg.MODEL.ROI_KEYPOINT_HEAD.VAE = CN()
-        cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.HIDDEN_DIMS = [32, 64, 128, 256, 512]
+        cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.HIDDEN_DIMS = [32, 64, 128, 256, 256]
         cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.LATENT_DIM = 100
         cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.NUM_OUTPUTS_VAE = 10 # 2 center points, 8 keypoint offsets
         cfg.DATASETS.TRAIN = ("KGN_VAE_train_dataset",)
