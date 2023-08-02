@@ -7,6 +7,7 @@ print("detectron2:", detectron2.__version__)
 
 import detectron2
 from detectron2.utils.logger import setup_logger
+
 setup_logger()
 
 import numpy as np
@@ -50,6 +51,7 @@ from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog, build_detection_train_loader
 from detectron2.engine import default_argument_parser, default_setup, launch
+
 # from detectron2.evaluation import CityscapesSemSegEvaluator, DatasetEvaluators, SemSegEvaluator
 #             from detectron2.projects.deeplab import add_deeplab_config, build_lr_scheduler
 
@@ -83,10 +85,7 @@ def build_seg_aug(cfg):
             )
         )
 
-    others = {
-        'random_rotation': True,
-        'random_resize': cfg.resize_aug
-    }
+    others = {"random_rotation": True, "random_resize": cfg.resize_aug}
 
     if cfg.augmentate:
         # augs.append(AlbumentationsWrapper(A.ToFloat(max_value=255.0, always_apply=True, p=1.0)))
@@ -95,22 +94,45 @@ def build_seg_aug(cfg):
         albumention_lst = [
             A.CLAHE(clip_limit=4.0, tile_grid_size=(8, 8), always_apply=False, p=0.8),
             A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.8),
-            A.Equalize(mode='cv', by_channels=True, mask=None, mask_params=(), p=0.8),
-            A.FancyPCA (alpha=0.1, p=0.8),
-            A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=0.8),
-            A.PixelDropout(dropout_prob=0.01, per_channel=False, drop_value=0, mask_drop_value=None, p=0.8),
-            A.OneOf([A.Downscale(scale_min=0.25, scale_max=0.5, interpolation=2, p=1.0),
+            A.Equalize(mode="cv", by_channels=True, mask=None, mask_params=(), p=0.8),
+            A.FancyPCA(alpha=0.1, p=0.8),
+            A.HueSaturationValue(
+                hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=0.8
+            ),
+            A.PixelDropout(
+                dropout_prob=0.01,
+                per_channel=False,
+                drop_value=0,
+                mask_drop_value=None,
+                p=0.8,
+            ),
+            A.OneOf(
+                [
+                    A.Downscale(scale_min=0.25, scale_max=0.5, interpolation=2, p=1.0),
                     A.GaussianBlur(blur_limit=(3, 7), sigma_limit=1.0, p=1.0),
                     A.Sharpen(alpha=(0.2, 0.5), lightness=(0.5, 1.0), p=1.0),
-                    A.MotionBlur(blur_limit=9, allow_shifted=True, always_apply=False, p=1.0),
-                    A.GaussNoise(var_limit=(10.0, 80.0), mean=0, per_channel=True, p=1.0)], 
-                p=0.8
+                    A.MotionBlur(
+                        blur_limit=9, allow_shifted=True, always_apply=False, p=1.0
+                    ),
+                    A.GaussNoise(
+                        var_limit=(10.0, 80.0), mean=0, per_channel=True, p=1.0
+                    ),
+                ],
+                p=0.8,
             ),
-            A.OneOf([A.RandomBrightness(limit=0.2, always_apply=False, p=1.0),
-                    A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, brightness_by_max=True, p=1.0),
-                    A.RandomContrast(limit=0.2, p=1.0)],
-                p=1.0
-            )
+            A.OneOf(
+                [
+                    A.RandomBrightness(limit=0.2, always_apply=False, p=1.0),
+                    A.RandomBrightnessContrast(
+                        brightness_limit=0.2,
+                        contrast_limit=0.2,
+                        brightness_by_max=True,
+                        p=1.0,
+                    ),
+                    A.RandomContrast(limit=0.2, p=1.0),
+                ],
+                p=1.0,
+            ),
         ]
 
         t1 = A.SomeOf(albumention_lst, 1, replace=False, p=1.0)
@@ -125,19 +147,28 @@ def build_seg_aug(cfg):
         if cfg.INPUT.COLOR_AUG_SSD:
             augs.append(ColorAugSSDTransform(img_format=cfg.INPUT.FORMAT))
 
-
-        if others['random_rotation']:
-            augs.append(T.RandomApply(T.RandomRotation([-90.0, 90.0], 
-                                expand=True, center=[[0.3, 0.3], [0.7, 0.7]], 
-                                sample_style="range"), prob=0.2))
+        if others["random_rotation"]:
+            augs.append(
+                T.RandomApply(
+                    T.RandomRotation(
+                        [-90.0, 90.0],
+                        expand=True,
+                        center=[[0.3, 0.3], [0.7, 0.7]],
+                        sample_style="range",
+                    ),
+                    prob=0.2,
+                )
+            )
         else:
-            print('Random rotation disabled')
+            print("Random rotation disabled")
 
     return augs, additional_augs
+
 
 ##################################################################################################
 ## train evaluation hook
 ##################################################################################################
+
 
 class LossEvalHook(HookBase):
     def __init__(self, eval_period, model, data_loader):
@@ -149,9 +180,7 @@ class LossEvalHook(HookBase):
             self.data_pts.append(inputs)
         print("Eval period:", self._period)
 
-
     def _do_loss_eval(self):
-
         start_time = time.perf_counter()
         total_compute_time = 0
         losses = []
@@ -163,7 +192,6 @@ class LossEvalHook(HookBase):
         num_warmup = min(5, total - 1)
 
         for idx, inputs in enumerate(sampled_pts):
-
             if idx == num_warmup:
                 start_time = time.perf_counter()
                 total_compute_time = 0
@@ -174,8 +202,12 @@ class LossEvalHook(HookBase):
             iters_after_start = idx + 1 - num_warmup * int(idx >= num_warmup)
             seconds_per_img = total_compute_time / iters_after_start
             if idx >= num_warmup * 2 or seconds_per_img > 5:
-                total_seconds_per_img = (time.perf_counter() - start_time) / iters_after_start
-                eta = datetime.timedelta(seconds=int(total_seconds_per_img * (total - idx - 1)))
+                total_seconds_per_img = (
+                    time.perf_counter() - start_time
+                ) / iters_after_start
+                eta = datetime.timedelta(
+                    seconds=int(total_seconds_per_img * (total - idx - 1))
+                )
                 log_every_n_seconds(
                     logging.INFO,
                     "Loss on Validation  done {}/{}. {:.4f} s / img. ETA={}".format(
@@ -186,14 +218,14 @@ class LossEvalHook(HookBase):
             loss_batch = self._get_loss(inputs)
             losses.append(loss_batch)
         mean_loss = np.mean(losses)
-        self.trainer.storage.put_scalar('validation_loss', mean_loss)
-        wandb.log({'validation_loss': mean_loss})
+        self.trainer.storage.put_scalar("validation_loss", mean_loss)
+        wandb.log({"validation_loss": mean_loss})
         comm.synchronize()
 
         return losses
 
     def _get_loss(self, data):
-        # How loss is calculated on train_loop 
+        # How loss is calculated on train_loop
         metrics_dict = self._model(data)
         metrics_dict = {
             k: v.detach().cpu().item() if isinstance(v, torch.Tensor) else float(v)
@@ -204,7 +236,7 @@ class LossEvalHook(HookBase):
 
     def after_step(self):
         next_iter = self.trainer.iter + 1
-        is_final = (next_iter == self.trainer.max_iter)
+        is_final = next_iter == self.trainer.max_iter
         if is_final or ((self._period > 0) and ((next_iter % self._period) == 0)):
             print("Next iter-----------------------------", next_iter)
             self._do_loss_eval()
@@ -213,10 +245,16 @@ class LossEvalHook(HookBase):
 
 def annotations_to_instances(annos, image_size, mask_format="polygon"):
     """taken from detectron, made one change"""
-    boxes = (np.stack([BoxMode.convert(obj["bbox"], obj["bbox_mode"], BoxMode.XYXY_ABS) for obj in annos])
-                    if len(annos)
-                    else np.zeros((0, 4))
-             )
+    boxes = (
+        np.stack(
+            [
+                BoxMode.convert(obj["bbox"], obj["bbox_mode"], BoxMode.XYXY_ABS)
+                for obj in annos
+            ]
+        )
+        if len(annos)
+        else np.zeros((0, 4))
+    )
     target = Instances(image_size)
     target.gt_boxes = Boxes(boxes)
 
@@ -244,9 +282,9 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
                     # COCO RLE
                     masks.append(mask_util.decode(segm))
                 elif isinstance(segm, np.ndarray):
-                    assert segm.ndim == 2, "Expect segmentation of 2 dimensions, got {}.".format(
-                        segm.ndim
-                    )
+                    assert (
+                        segm.ndim == 2
+                    ), "Expect segmentation of 2 dimensions, got {}.".format(segm.ndim)
                     # mask array
                     masks.append(segm)
                 else:
@@ -258,7 +296,12 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
                     )
             # torch.from_numpy does not support array with negative stride.
             masks = BitMasks(
-                torch.stack([torch.from_numpy(np.ascontiguousarray(np.array(x, copy=True))) for x in masks])
+                torch.stack(
+                    [
+                        torch.from_numpy(np.ascontiguousarray(np.array(x, copy=True)))
+                        for x in masks
+                    ]
+                )
             )
         target.gt_masks = masks
 
@@ -277,8 +320,8 @@ class MyDatasetMapper:
         *,
         augmentations: List[Union[T.Augmentation, T.Transform]],
         image_format: str,
-	additional_augs = None,
-        resize_aug = False,
+        additional_augs=None,
+        resize_aug=False,
         use_instance_mask: bool = False,
         use_keypoint: bool = False,
         instance_mask_format: str = "polygon",
@@ -356,7 +399,9 @@ class MyDatasetMapper:
         }
 
         if cfg.MODEL.KEYPOINT_ON:
-            ret["keypoint_hflip_indices"] = utils.create_keypoint_hflip_indices(cfg.DATASETS.TRAIN)
+            ret["keypoint_hflip_indices"] = utils.create_keypoint_hflip_indices(
+                cfg.DATASETS.TRAIN
+            )
 
         if cfg.MODEL.LOAD_PROPOSALS:
             ret["precomputed_proposal_topk"] = (
@@ -375,7 +420,10 @@ class MyDatasetMapper:
 
         annos = [
             utils.transform_instance_annotations(
-                obj, transforms, image_shape, keypoint_hflip_indices=self.keypoint_hflip_indices
+                obj,
+                transforms,
+                image_shape,
+                keypoint_hflip_indices=self.keypoint_hflip_indices,
             )
             for obj in dataset_dict.pop("annotations")
             if obj.get("iscrowd", 0) == 0
@@ -401,17 +449,19 @@ class MyDatasetMapper:
 
         # USER: Remove if you don't do semantic/panoptic segmentation.
         if "sem_seg_file_name" in dataset_dict:
-            sem_seg_gt = utils.read_image(dataset_dict.pop("sem_seg_file_name"), "L").squeeze(2)
+            sem_seg_gt = utils.read_image(
+                dataset_dict.pop("sem_seg_file_name"), "L"
+            ).squeeze(2)
         else:
             sem_seg_gt = None
 
         if self.additional_augs is not None:
             transformed = self.additional_augs(image=image)
-            image = transformed['image']
+            image = transformed["image"]
 
         image_name = os.path.normpath(dataset_dict["file_name"]).split(os.sep)[-1]
         # print("Image name inside dataset mapper", image_name)
-        if self.resize_aug and (not ('far' in image_name)):
+        if self.resize_aug and (not ("far" in image_name)):
             augs_to_apply = self.close_augmentations
         else:
             augs_to_apply = self.augmentations
@@ -424,7 +474,9 @@ class MyDatasetMapper:
         # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
-        dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
+        dataset_dict["image"] = torch.as_tensor(
+            np.ascontiguousarray(image.transpose(2, 0, 1))
+        )
         if sem_seg_gt is not None:
             dataset_dict["sem_seg"] = torch.as_tensor(sem_seg_gt.astype("long"))
 
@@ -452,20 +504,25 @@ class MyTrainer(DefaultTrainer):
     def build_evaluator(cls, cfg, dataset_name, output_folder=None):
         if output_folder is None:
             output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
-        return MyCOCOEvaluator(dataset_name, tasks=['bbox', 'segm'], 
-                            use_fast_impl=False, output_dir=cfg.OUTPUT_DIR)
-                     
+        return MyCOCOEvaluator(
+            dataset_name,
+            tasks=["bbox", "segm"],
+            use_fast_impl=False,
+            output_dir=cfg.OUTPUT_DIR,
+        )
+
     def build_hooks(self):
         hooks = super().build_hooks()
-        hooks.insert(-1,LossEvalHook(
-            self.cfg.TEST.EVAL_PERIOD,
-            self.model,
-            build_detection_test_loader(
-                self.cfg,
-                self.cfg.DATASETS.TEST[0],
-                MyDatasetMapper(self.cfg,True)
-            )
-        ))
+        hooks.insert(
+            -1,
+            LossEvalHook(
+                self.cfg.TEST.EVAL_PERIOD,
+                self.model,
+                build_detection_test_loader(
+                    self.cfg, self.cfg.DATASETS.TEST[0], MyDatasetMapper(self.cfg, True)
+                ),
+            ),
+        )
         # swap the order of PeriodicWriter and ValidationLoss
         # code hangs with no GPUs > 1 if this line is removed
         hooks = hooks[:-2] + hooks[-2:][::-1]
@@ -475,13 +532,16 @@ class MyTrainer(DefaultTrainer):
     def build_train_loader(cls, cfg):
         # if "SemanticSegmentor" in cfg.MODEL.META_ARCHITECTURE:
         augs, additional_augs = build_seg_aug(cfg)
-        mapper = MyDatasetMapper(cfg, is_train=True, augmentations=augs,
-					additional_augs=additional_augs,
-                                        resize_aug=cfg.resize_aug)
+        mapper = MyDatasetMapper(
+            cfg,
+            is_train=True,
+            augmentations=augs,
+            additional_augs=additional_augs,
+            resize_aug=cfg.resize_aug,
+        )
         # else:
         #     mapper = None
         return build_detection_train_loader(cfg, mapper=mapper)
-
 
     @classmethod
     def build_lr_scheduler(cls, cfg, optimizer):
@@ -506,11 +566,14 @@ class MyCOCOEvaluator(COCOEvaluator):
 
         # the standard metrics
         results = {
-            metric: float(coco_eval.stats[idx] * 100 if coco_eval.stats[idx] >= 0 else "nan")
+            metric: float(
+                coco_eval.stats[idx] * 100 if coco_eval.stats[idx] >= 0 else "nan"
+            )
             for idx, metric in enumerate(metrics)
         }
         self._logger.info(
-            "Evaluation results for {}: \n".format(iou_type) + create_small_table(results)
+            "Evaluation results for {}: \n".format(iou_type)
+            + create_small_table(results)
         )
         if not np.isfinite(sum(results.values())):
             self._logger.info("Some metrics cannot be computed and is shown as NaN.")
@@ -536,7 +599,9 @@ class MyCOCOEvaluator(COCOEvaluator):
         # tabulate it
         N_COLS = min(6, len(results_per_category) * 2)
         results_flatten = list(itertools.chain(*results_per_category))
-        results_2d = itertools.zip_longest(*[results_flatten[i::N_COLS] for i in range(N_COLS)])
+        results_2d = itertools.zip_longest(
+            *[results_flatten[i::N_COLS] for i in range(N_COLS)]
+        )
         table = tabulate(
             results_2d,
             tablefmt="pipe",

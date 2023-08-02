@@ -46,7 +46,9 @@ def select_foreground_proposals(
     return fg_proposals, fg_selection_masks
 
 
-def select_proposals_with_visible_keypoints(proposals: List[Instances]) -> List[Instances]:
+def select_proposals_with_visible_keypoints(
+    proposals: List[Instances],
+) -> List[Instances]:
     """
     Args:
         proposals (list[Instances]): a list of N Instances, where N is the
@@ -63,7 +65,7 @@ def select_proposals_with_visible_keypoints(proposals: List[Instances]) -> List[
     IOU>threshold, then proposals with no visible keypoint are filtered out.
     This strategy seems to make no difference on Detectron and is easier to implement.
     """
-    
+
     ret = []
     all_num_fg = []
     for proposals_per_image in proposals:
@@ -72,28 +74,35 @@ def select_proposals_with_visible_keypoints(proposals: List[Instances]) -> List[
             ret.append(proposals_per_image)
             continue
         gt_keypoints = proposals_per_image.gt_keypoints
+        import pdb; pdb.set_trace()
         prop_select_idx = []
-        for i, kpt in enumerate(gt_keypoints):
+        for i in range(len(proposals_per_image)):
+            kpt = gt_keypoints[i]
             # #fg x K x 3
             vis_mask = kpt.tensor[:, :, 2] >= 1
             selection = (vis_mask).any(dim=1)
-            
-            if(sum(selection)):
+
+            if sum(selection):
                 prop_select_idx.append(i)
                 selection_idxs = nonzero_tuple(selection)[0]
-                
-                for trg_name in ['gt_keypoints', 'gt_centerpoints', 'gt_orientations', 'gt_widths']:
-                    proposals_per_image._fields[trg_name][i] = proposals_per_image._fields[trg_name][i][selection_idxs]
-         
-             
-        prop_select_idx = torch.tensor(prop_select_idx)   
+
+                for trg_name in [
+                    "gt_keypoints",
+                    "gt_centerpoints",
+                    "gt_orientations",
+                    "gt_widths",
+                ]:
+                    proposals_per_image._fields[trg_name][
+                        i
+                    ] = proposals_per_image._fields[trg_name][i][selection_idxs]
+
+        prop_select_idx = torch.tensor(prop_select_idx)
         all_num_fg.append(prop_select_idx.numel())
         ret.append(proposals_per_image[prop_select_idx])
 
     storage = get_event_storage()
     storage.put_scalar("keypoint_head/num_fg_samples", np.mean(all_num_fg))
     return ret
-
 
 
 @ROI_HEADS_REGISTRY.register()
@@ -140,11 +149,10 @@ class MyROIHeads(ROIHeads):
         """
         super().__init__(**kwargs)
         # keep self.in_features for backward compatibility
-        
+
         self.keypoint_in_features = keypoint_in_features
         self.keypoint_pooler = keypoint_pooler
         self.keypoint_head = keypoint_head
-
 
     @classmethod
     def from_config(cls, cfg, input_shape):
@@ -153,7 +161,7 @@ class MyROIHeads(ROIHeads):
         # may have overridden _init_*_head methods. In this case, those overridden methods
         # will not be classmethods and we need to avoid trying to call them here.
         # We test for this with ismethod which only returns True for bound methods of cls.
-        # Such subclasses will need to handle calling their overridden _init_*_head methods. 
+        # Such subclasses will need to handle calling their overridden _init_*_head methods.
         ret.update(cls._init_keypoint_head(cfg, input_shape))
         return ret
 
@@ -208,19 +216,19 @@ class MyROIHeads(ROIHeads):
         del targets
 
         if self.training:
-            
             losses = self._forward_keypoint(features, proposals)
             return proposals, losses
-        
+
         else:
-            
             # During inference cascaded prediction is used: the mask and keypoints heads are only
             # applied to the top scoring box detections.
-            
+
             pred_instances = self._forward_keypoint(features, proposals)
             return pred_instances, {}
 
-    def _forward_keypoint(self, features: Dict[str, torch.Tensor], instances: List[Instances]):
+    def _forward_keypoint(
+        self, features: Dict[str, torch.Tensor], instances: List[Instances]
+    ):
         """
         Forward logic of the keypoint prediction branch.
 
@@ -236,20 +244,21 @@ class MyROIHeads(ROIHeads):
             In inference, update `instances` with new fields "pred_keypoints" and return it.
         """
         if self.training:
-            
             # import pdb; pdb.set_trace()
             # head is only trained on positive proposals with >=1 visible keypoints.
             instances, _ = select_foreground_proposals(instances, self.num_classes)
-            instances = select_proposals_with_visible_keypoints(instances)
+            # instances = select_proposals_with_visible_keypoints(instances)
+        
 
-        
-        
         if self.keypoint_pooler is not None:
             features = [features[f] for f in self.keypoint_in_features]
-            boxes = [x.proposal_boxes if self.training else x.proposal_boxes for x in instances]
+            boxes = [
+                x.proposal_boxes if self.training else x.proposal_boxes
+                for x in instances
+            ]
             features = self.keypoint_pooler(features, boxes)
         else:
             features = {f: features[f] for f in self.keypoint_in_features}
-            
+
         
         return self.keypoint_head(features, instances)

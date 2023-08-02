@@ -12,12 +12,13 @@ def get_dataset_dir():
 def get_config_file_path():
     return osp.join(get_src_dir(), "model/configs/CenterNet2_R50_1x.yaml")
 
+
 def get_debug_img_dir():
     return osp.join(get_src_dir(), "temp_images")
 
+
 def get_output_dir():
     return osp.join(get_src_dir(), "output/KGN")
-
 
 
 if __name__ == "__main__":

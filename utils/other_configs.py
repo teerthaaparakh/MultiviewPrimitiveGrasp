@@ -1,4 +1,5 @@
 import numpy as np
+
 STICK_LEN = 0.08
 STICK_RADIUS = 0.0005
 

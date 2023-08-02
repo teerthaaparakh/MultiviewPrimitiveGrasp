@@ -5,26 +5,30 @@ import cv2
 from utils.other_configs import *
 
 import sys, os
+
 # sys.path.append(os.getenv("KGN_DIR"))
 from utils.path_util import get_debug_img_dir
+
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
-def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth, 
-                       draw=False, draw_info=None):
+
+def generate_keypoints(
+    grasp_pose, grasp_width, cam_intr, cam_extr, depth, draw=False, draw_info=None
+):
     """
     cam_extr: 4x4
     cam_intr: 3x3
     draw_info (Optional): img_file, obj_id, img_id, colli
     """
 
-    # TODO (TP): good to break functions into small functions and one final 
+    # TODO (TP): good to break functions into small functions and one final
     # function that uses all the other functions, otherwise it is hard to read
-    # and make changes to. 
+    # and make changes to.
     # For example, projcting keypoints can very well be another function
     # even getting the 3d points for a grasp can be another function
-    # TODO (TP): use variable names to be descriptive and avoid unnecessary keywords 
+    # TODO (TP): use variable names to be descriptive and avoid unnecessary keywords
     # for example, "ret" in kpts_3d_ret
-       
+
     ret = []
     kpts_3d_ret = []
     kpts_2d_ret = []
@@ -47,7 +51,7 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth,
         X_CW = np.linalg.inv(X_WC)
         kpts_3d_cam = X_CW @ kpts_3d
         kpts_3d_cam = kpts_3d_cam[:3, :].T
-        
+
         # iz = np.argsort(pcd_cam[:, -1])[::-1]
         # pcd_cam = pcd_cam[iz]
         cam_intr = np.array(cam_intr)
@@ -59,7 +63,7 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth,
         px = (kpts_3d_cam[:, 0] * fx / kpts_3d_cam[:, 2]) + cx
         py = (kpts_3d_cam[:, 1] * fy / kpts_3d_cam[:, 2]) + cy
         kpts_2d_ret.append(np.concatenate(([px], [py]), axis=0).T)
-        
+
         center_ret.append(get_center(kpts_3d, X_CW, cam_intr))
 
         height_y, width_x = depth.shape
@@ -78,13 +82,18 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth,
 
         if (not projection_valid) and draw:
             img_dir = get_debug_img_dir()
-            os.makedirs(img_dir, exist_ok= True)
+            os.makedirs(img_dir, exist_ok=True)
             img_file, obj_id, img_id, colli = draw_info
             image = cv2.imread(img_file)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             logging.info("Image saved for debugging.")
-            draw_on_image(image, px, py, v, 
-                          name=os.path.join(img_dir, f"{img_id}_{obj_id}_{j}.png"))
+            draw_on_image(
+                image,
+                px,
+                py,
+                v,
+                name=os.path.join(img_dir, f"{img_id}_{obj_id}_{j}.png"),
+            )
 
         else:
             for i in range(4):
@@ -108,15 +117,21 @@ def generate_keypoints(grasp_pose, grasp_width, cam_intr, cam_extr, depth,
     #     4,
     #     3,
     # ), "please check the shape of ret in gen_kpts.py"
-    return np.array(valids), np.array(ret), np.array(kpts_3d_ret), np.array(kpts_2d_ret), np.array(center_ret)
+    return (
+        np.array(valids),
+        np.array(ret),
+        np.array(kpts_3d_ret),
+        np.array(kpts_2d_ret),
+        np.array(center_ret),
+    )
 
 
 def get_center(kpts_3d, X_CW, cam_intr):
     center = kpts_3d[:3, :].T
-    center = (center[0] + center[3])/2
-    
+    center = (center[0] + center[3]) / 2
+
     center_cam = X_CW @ np.array([*center, 1])
-    center_cam = center_cam[:3] 
+    center_cam = center_cam[:3]
 
     fx = cam_intr[0, 0]
     fy = cam_intr[1, 1]
@@ -126,9 +141,7 @@ def get_center(kpts_3d, X_CW, cam_intr):
     px = (center_cam[0] * fx / center_cam[2]) + cx
     py = (center_cam[1] * fy / center_cam[2]) + cy
     return [px, py, 2]
-        
-    
-    
+
 
 def draw_on_image(image, px, py, v, name=None):
     colors = [(255, 0, 0), (0, 255, 240), (0, 255, 0), (0, 0, 255), (240, 240, 0)]
@@ -144,14 +157,17 @@ def draw_on_image(image, px, py, v, name=None):
             image = cv2.circle(
                 image, (px[i], py[i]), radius=3, color=yellow, thickness=2
             )
-            
-    for i in range(len(px)-1):
-        image = cv2.line(image, (px[i], py[i]), (px[i+1], py[i+1]), (255,255,255), thickness = 1)
-        
+
+    for i in range(len(px) - 1):
+        image = cv2.line(
+            image, (px[i], py[i]), (px[i + 1], py[i + 1]), (255, 255, 255), thickness=1
+        )
+
     if name is not None:
         cv2.imwrite(name, image)
-        
+
     return image
+
 
 # if __name__ == "__main__":
 #     import sys, os, json

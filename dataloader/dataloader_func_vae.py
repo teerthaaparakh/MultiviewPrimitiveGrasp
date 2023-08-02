@@ -11,7 +11,7 @@ from utils.other_configs import *
 
 
 # Show how to implement a minimal mapper, similar to the default DatasetMapper
-def mapper(dataset_dict):
+def mapper_vae(dataset_dict):
     dataset_dict = copy.deepcopy(dataset_dict)  # it will be modified by code below
     depth = np.load(dataset_dict["depth_file_name"])
     image = cv2.imread(dataset_dict["file_name"], cv2.IMREAD_UNCHANGED) / 255.0
@@ -38,22 +38,24 @@ def mapper(dataset_dict):
     obj_box = []
     # print("num_instances", num_instances)
     for i in range(num_instances):
+        
         object_dict = annotations[i]
         # it can have multiple keypoint sets
         keypoints = object_dict["keypoints"]
         width = object_dict["grasp_width"]  # 5 length vector
         ori = object_dict["ori_clss"]  # 5 length vector
         center = object_dict["centers"]  # 5x3
-        center = center[:, None, :]  # 5x1x2
+        # 5x1x2
 
-        all_instance_keypoints.append(Keypoints(np.array(keypoints)))
+        all_instance_keypoints.append(keypoints.reshape(4,-1))
         all_instance_orientation.append(torch.tensor(ori))
         all_instance_widths.append(torch.tensor(width))
-        all_instance_centerpoints.append(Keypoints(np.array(center)))
+        all_instance_centerpoints.append(center[None, :])
 
         category_ids.append(OBJECT_DICTS[object_dict["obj_type"]])
         obj_box.append(object_dict["bbox"])
 
+    
     return {
         "image": torch.from_numpy(image_input).permute(2, 0, 1).float(),
         "height": h,
@@ -62,10 +64,10 @@ def mapper(dataset_dict):
             (h, w),
             gt_classes=torch.tensor(category_ids, dtype=torch.long),
             gt_boxes=Boxes(np.array(obj_box)),
-            gt_keypoints=all_instance_keypoints,
-            gt_centerpoints=all_instance_centerpoints,
-            gt_orientations=all_instance_orientation,  # NCx1
-            gt_widths=all_instance_widths,
+            gt_keypoints=Keypoints(np.array(all_instance_keypoints)),
+            gt_centerpoints= Keypoints(np.array(all_instance_centerpoints)),
+            gt_orientations=torch.tensor(all_instance_orientation),  # NCx1 
+            gt_widths=torch.tensor(all_instance_widths),
         ),
     }
 
@@ -75,6 +77,6 @@ if __name__ == "__main__":
 
     ll = dataset_function_vae(2)
 
-    dd = mapper(ll[0])
+    dd = mapper_vae(ll[0])
     
     print(dd)
