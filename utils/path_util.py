@@ -16,9 +16,15 @@ def get_config_file_path():
 def get_debug_img_dir():
     return osp.join(get_src_dir(), "temp_images")
 
+def get_debug_img_dir_orig():
+    return osp.join(get_src_dir(), "temp_images_orig")
+
 
 def get_output_dir():
     return osp.join(get_src_dir(), "output/KGN")
+
+def get_eval_output_dir():
+    return osp.join(get_src_dir(), "eval_output")
 
 
 if __name__ == "__main__":

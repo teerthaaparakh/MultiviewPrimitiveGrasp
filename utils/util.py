@@ -5,6 +5,8 @@ sys.path.append(os.environ["KGN_DIR"])
 from utils.other_configs import *
 import random
 import math, torch
+from torch import functional as F
+import pickle
 
 def get_area(bbox):
     min_col, min_row, max_col, max_row = bbox
@@ -79,7 +81,95 @@ def custom_random_generator(array, max_items):
         ret[0: total] = array*repetition
         ret[total: ] = random.sample(array, remaining)
         return ret
+
+
+def kpts_to_hm(
+    instances,
+    heatmap_shape
+):  # (M,C,56,56)
+    heatmaps = []
+    _, H, W = heatmap_shape
+    C = NUM_BINS
+    M = len(instances)
+    # heatmap shape 27x9x14x14
+    for i in range(M):
+        cen = instances[i].gt_centerpoints.tensor
+        ori = instances[i].gt_orientations
+        NC = len(instances[i])
+        heatmap_ret = np.zeros((NC, C, H, W))
+        boxes = instances[0].proposal_boxes.tensor
+        for j in range(NC):
+            single_center = cen[j][0]
+            single_ori = ori[j]
+            box = boxes[j]
+            map_x, map_y, in_box = mapper(single_center, box, H)
+            if in_box:
+                heatmap_ret[j, single_ori, map_x, map_y] = 1
+        heatmaps.append(heatmap_ret)
+    heatmaps = np.array(heatmaps)
+    return torch.from_numpy(heatmaps)
+
+
+def mapper(center, box, hm_size):
+    # center: 3 (x,y,v)
+    # box: 4 (x,y,x,y)
+    top_x, top_y, bottom_x, bottom_y = box
+    scale_x = hm_size / (bottom_x - top_x)
+    scale_y = hm_size / (bottom_y - top_y)
+    x = (center[0] - top_x) * scale_x
+    x = x.floor().long()
+    y = (center[1] - top_y) * scale_y
+    y = y.floor().long()
+
+    inside_xrange = x >= 0 and x <= (hm_size - 1)
+    inside_yrange = y >= 0 and y <= (hm_size - 1)
+
+    if inside_xrange and inside_yrange:
+        return x, y, True
+    else:
+        return x, y, False
+
+
+@torch.jit.script_if_tracing
+def heatmaps_to_keypoints(
+    maps: torch.Tensor, instances
+) -> dict:
     
+    num_instances = [len(inst) for inst in instances]
+    maps = maps.split(num_instances)
+    roi_heatmaps = []
+    M = len(num_instances)
+    for i in range(M):
+        roi_hmaps = []
+        heatmap = maps[i]
+        rois = instances[i].proposal_boxes.tensor
+        offset_x = rois[:, 0]
+        offset_y = rois[:, 1]
+        
+        widths = (rois[:, 2] - rois[:, 0]).clamp(min=1)
+        heights = (rois[:, 3] - rois[:, 1]).clamp(min=1)
+    
+        widths_ceil = widths.ceil()
+        heights_ceil = heights.ceil()
+        
+        width_corrections = widths / widths_ceil
+        height_corrections = heights / heights_ceil
+        
+        for j in range(num_instances[i]):
+            outsize = (int(heights_ceil[j]), int(widths_ceil[j]))
+            roi_hmap = F.interpolate(
+                heatmap[[j]], size=outsize, mode="bicubic", align_corners=False
+            )
+            roi_hmaps.append(roi_hmap)
+            
+        roi_heatmaps.append(roi_hmaps)
+        
+    return roi_heatmaps
+
+def save_results(data):
+    print("HERE, HERE, HERE", data)
+    with open('/Users/teerthaaparakh/Desktop/MultiviewPrimitiveGrasp/file.pkl', 'wb') as file:
+                    pickle.dump(data, file)
     
 if __name__=="__main__":
     arr = range(10)

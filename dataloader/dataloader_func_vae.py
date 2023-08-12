@@ -34,6 +34,7 @@ def mapper_vae(dataset_dict):
     all_instance_widths = []
     all_instance_centerpoints = []
     all_instance_orientation = []
+    all_instance_scales = []
     category_ids = []
     obj_box = []
     # print("num_instances", num_instances)
@@ -45,12 +46,14 @@ def mapper_vae(dataset_dict):
         width = object_dict["grasp_width"]  # 5 length vector
         ori = object_dict["ori_clss"]  # 5 length vector
         center = object_dict["centers"]  # 5x3
+        scale = object_dict["scales"]
         # 5x1x2
 
         all_instance_keypoints.append(keypoints.reshape(4,-1))
         all_instance_orientation.append(torch.tensor(ori))
         all_instance_widths.append(torch.tensor(width))
         all_instance_centerpoints.append(center[None, :])
+        all_instance_scales.append(torch.tensor(scale))
 
         category_ids.append(OBJECT_DICTS[object_dict["obj_type"]])
         obj_box.append(object_dict["bbox"])
@@ -68,6 +71,7 @@ def mapper_vae(dataset_dict):
             gt_centerpoints= Keypoints(np.array(all_instance_centerpoints)),
             gt_orientations=torch.tensor(all_instance_orientation),  # NCx1 
             gt_widths=torch.tensor(all_instance_widths),
+            gt_scales=torch.tensor(all_instance_scales)
         ),
     }
 

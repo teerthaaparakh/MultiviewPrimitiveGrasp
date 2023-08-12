@@ -7,7 +7,7 @@ from utils.util import get_area
 from utils.other_configs import *
 from glob import glob
 import json
-from utils.gen_kpts import generate_keypoints
+from utils.gen_kpts import generate_keypoints, gen_kpts_norm_cano
 from utils.seg import generate_bbox
 from detectron2.structures import BoxMode
 from utils.util import get_ori_clss
@@ -68,6 +68,7 @@ def dataset_function(total_num_data) -> list[dict]:
 
         total_grasps = len(grasp_poses)
 
+        
         # bowl, small cylinder,  cuboid, big cylinder, stick
         for j in range(total_grasps):
             # TODO (TP): good to have a comment here for what these
@@ -90,11 +91,27 @@ def dataset_function(total_num_data) -> list[dict]:
                     cam_int,
                     cam_poses[imgid],
                     depth=np.load(current_dict["depth_file_name"]),
-                    draw=True,
+                    draw=False,
                     draw_info=(current_dict["file_name"], obj_type, i, None),
                 )
 
-                projections_valid, ret, kpts_3d, kpts_2d, centers = result
+                projections_valid, ret, kpts_3d, kpts_2d, centers_, scales = result
+                
+                
+                result = gen_kpts_norm_cano(
+                    grasp_pose,
+                    grasp_width,
+                    cam_int,
+                    cam_poses[imgid],
+                    v_kpts=ret[:,:,2],
+                    depth=np.load(current_dict["depth_file_name"]),
+                    draw=False,
+                    draw_info=(current_dict["file_name"], obj_type, i, None),
+                )
+                
+                projections_valid, ret, kpts_3d, kpts_2d, centers, scales = result
+                
+                
 
                 valid = np.logical_and(projections_valid, (~grasp_collision))
 
@@ -120,6 +137,7 @@ def dataset_function(total_num_data) -> list[dict]:
                     "ori_clss": ori_clss[valid],
                     "centers": centers[valid].reshape(1,-1)[0],
                     "keypoints": ret[valid].reshape(1,-1)[0],
+                    "scales": scales[valid],
                     # "grasp_pose": grasp_pose[~grasp_collision],
                     # "grasp_width": grasp_width[~grasp_collision],
                     # "kpts_3d": kpts_3d[~grasp_collision],

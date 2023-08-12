@@ -17,6 +17,8 @@ from torch.nn import functional as F
 from model.our_modeling.encode_decode import Encoder, Decoder
 from utils.util import get_grasp_features
 
+from utils.post_process import post_process
+
 @ROI_KEYPOINT_HEAD_REGISTRY.register()
 class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
     """
@@ -34,9 +36,11 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         loss_weight_tuple,
         conv_dims,
         use_vae,
-        hidden_dims = None,
-        latent_dim  = None,
-        num_outputs_vae = None,
+        hidden_dims=None,
+        latent_dim=None,
+        num_outputs_vae=None,
+        eval_save_results=False,
+        eval_output_dir=None,
         **kwargs
     ):
 
@@ -46,13 +50,16 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         self.use_vae = use_vae
         in_channels = input_shape.channels
         
+        self.eval_save_results = eval_save_results
         
+        self.eval_output_dir = eval_output_dir
+            
 
         if self.use_vae:
             self.avg_pool = nn.AvgPool2d((input_shape.height, input_shape.width))
             self.encoder = Encoder(in_channels+num_outputs_vae, hidden_dims, latent_dim)
             self.decoder = Decoder(hidden_dims, latent_dim+in_channels, num_outputs_vae)
-            
+            self.latent_dim = latent_dim
             
         else:
             up_scale = 2.0
@@ -120,6 +127,10 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
                 If 'visible', the loss is normalized by the total number of
                 visible keypoints across images."""
 
+        ret["eval_save_results"] = cfg.TEST.EVAL_SAVE_RESULTS
+        if ret["eval_save_results"]:
+            ret["eval_output_dir"] = cfg.TEST.EVAL_OUTPUT_DIR
+            
         return ret
 
     def forward(self, x_input:torch.Tensor, instances: List[Instances]):
@@ -158,26 +169,29 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
                 return instances
             
         else:
-            import pdb; pdb.set_trace()
+            
+            # import pdb; pdb.set_trace()
+            
             x_input = self.avg_pool(x_input)
             x_input = x_input.flatten(start_dim = 1)
             
-            grasp_features = get_grasp_features(instances)
-            x_concat = torch.cat((x_input, grasp_features), axis = 1)
-    
-            mu, log_var = self.encoder(x_concat) # batch size x num_latents
-            z = self.reparameterize(mu, log_var)  # batch size x num_latents
-        
-            z = torch.cat((x_input, z), axis=1)
-            x_cp_output, x_offset_output = self.decoder(z)
-
             if self.training:
-                loss_dict = self.grasp_sampler_loss(x_cp_output, x_offset_output, grasp_features, mu, log_var)
+                grasp_features = get_grasp_features(instances)  # kpts offset + centerpoints
+                x_concat = torch.cat((x_input, grasp_features), axis = 1)
+        
+                mu, log_var = self.encoder(x_concat) # batch size x num_latents
+                z = self.reparameterize(mu, log_var)  # batch size x num_latents
+            
+                z = torch.cat((x_input, z), axis=1)
+                x_offset_output, x_cp_output = self.decoder(z)
+                loss_dict = self.grasp_sampler_loss(torch.cat((x_offset_output, x_cp_output), axis = 1),
+                                                    grasp_features, mu, log_var)
                 return loss_dict
             else:
-                self.grasp_sampler_inference(x_output, instances)
-                
-
+                self.grasp_sampler_inference(x_input, instances)
+                return instances
+            
+            
     def layers(self, x):
         for layer in self:
             x = layer(x)
@@ -200,7 +214,7 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         return eps * std + mu   
     
     
-    def grasp_sampler_loss(self, recons_output_cp, recons_output_offset, grasp_input, mu, log_var) -> dict:
+    def grasp_sampler_loss(self, grasp_features_output, grasp_features_input, mu, log_var) -> dict:
         """
         Computes the VAE loss function.
         KL(N(\mu, \sigma), N(0, 1)) = \log \frac{1}{\sigma} + \frac{\sigma^2 + \mu^2}{2} - \frac{1}{2}
@@ -208,14 +222,18 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         :param kwargs:
         :return:
         """
-        recons = recons_output_cp
-        recons_loss = F.mse_loss(recons, grasp_input)
+        recons_loss = F.mse_loss(grasp_features_output, grasp_features_input)
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
         loss = recons_loss + kld_loss
-        return {'loss': loss, 'Reconstruction_Loss':recons_loss.detach(), 'KLD':-kld_loss.detach()}
+        return {'loss': loss}
 
-    def grasp_sampler_inference(self):
-        pass
+    def grasp_sampler_inference(self, x_input, instances):
+        
+        num_samples = len(x_input)
+        z = torch.randn(num_samples, self.latent_dim)
+        x_concat = torch.cat((x_input, z), axis = 1)
+        output  = self.decoder(x_concat)
+        post_process(output, instances)
     
 
 

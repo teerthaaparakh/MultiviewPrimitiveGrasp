@@ -13,6 +13,7 @@ from detectron2.modeling.poolers import ROIPooler
 from detectron2.modeling import build_keypoint_head
 from detectron2.modeling import ROIHeads, ROI_HEADS_REGISTRY
 
+from utils.util import save_results
 
 def select_foreground_proposals(
     proposals: List[Instances], bg_label: int
@@ -74,7 +75,7 @@ def select_proposals_with_visible_keypoints(
             ret.append(proposals_per_image)
             continue
         gt_keypoints = proposals_per_image.gt_keypoints
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         prop_select_idx = []
         for i in range(len(proposals_per_image)):
             kpt = gt_keypoints[i]
@@ -209,12 +210,22 @@ class MyROIHeads(ROIHeads):
         """
         See :class:`ROIHeads.forward`.
         """
+        
         del images
         if self.training:
             assert targets, "'targets' argument is required during training"
             proposals = self.label_and_sample_proposals(proposals, targets)
         del targets
+        # import pdb; pdb.set_trace()
+        # data = {}
+        # data["images"] = images
+        # data["targets"] = targets
+        # data["proposals"] = proposals
+        
+        # save_results(data)
+        
 
+        
         if self.training:
             losses = self._forward_keypoint(features, proposals)
             return proposals, losses

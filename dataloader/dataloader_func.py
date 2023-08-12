@@ -34,6 +34,7 @@ def mapper(dataset_dict):
     all_instance_widths = []
     all_instance_centerpoints = []
     all_instance_orientation = []
+    all_instance_scales = []
     category_ids = []
     obj_box = []
     # print("num_instances", num_instances)
@@ -45,11 +46,13 @@ def mapper(dataset_dict):
         ori = object_dict["ori_clss"]  # 5 length vector
         center = object_dict["centers"]  # 5x3
         center = center[:, None, :]  # 5x1x2
+        scales = object_dict["scales"]
 
         all_instance_keypoints.append(Keypoints(np.array(keypoints)))
         all_instance_orientation.append(torch.tensor(ori))
         all_instance_widths.append(torch.tensor(width))
         all_instance_centerpoints.append(Keypoints(np.array(center)))
+        all_instance_scales.append(torch.tensor(scales))
 
         category_ids.append(OBJECT_DICTS[object_dict["obj_type"]])
         obj_box.append(object_dict["bbox"])
@@ -66,6 +69,7 @@ def mapper(dataset_dict):
             gt_centerpoints=all_instance_centerpoints,
             gt_orientations=all_instance_orientation,  # NCx1
             gt_widths=all_instance_widths,
+            gt_scales=all_instance_scales
         ),
     }
 

@@ -153,11 +153,17 @@ dmypy.json
 cython_debug/
 
 dataset/ps_grasp_multi_1k
+dataset/ps_grasp_single_1k
+docs
+eval_output
+images
 output
-modeling
+real_dataset
+script_testing
 temp_images
+temp_images_orig
 wandb
-
+model/pretrained_resnet
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore

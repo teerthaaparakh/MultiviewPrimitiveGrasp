@@ -177,6 +177,7 @@ def keypoint_rcnn_inference(
         instances_per_image = instances_per_image[selected_ids_per_image]
         instances_per_image.pred_processed_results = processed_results_per_image
         pred_instances[i] = instances_per_image
+        i += 1
 
 
 @torch.jit.script_if_tracing
@@ -312,5 +313,5 @@ if __name__ == "__main__":
         num_elements.append(2 * height * width)
     import pdb
 
-    pdb.set_trace()
+    # pdb.set_trace()
     ret = top_centers(hmap, num_elements)

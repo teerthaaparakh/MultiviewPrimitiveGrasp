@@ -51,6 +51,7 @@ def dataset_function_vae(total_num_data):
                     "ori_clss": np.array([orig_obj_dict["ori_clss"][idid]]),
                     "centers": orig_obj_dict["centers"][idid*3:idid*3+3],
                     "keypoints": orig_obj_dict["keypoints"][idid*12:idid*12+12],
+                    "scales": np.array([orig_obj_dict["scales"][idid]]),
                     "bbox": orig_obj_dict["bbox"],
                     "bbox_mode": orig_obj_dict["bbox_mode"],
                 }

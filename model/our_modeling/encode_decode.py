@@ -52,11 +52,14 @@ class Decoder(nn.Module):
         self.final_layer_centerpoint = nn.Sequential(
                             nn.Linear(input_dim, 2),
                             nn.BatchNorm1d(2),
-                            nn.Sigmoid())
+                            nn.Sigmoid()
+                            )
         
         self.final_layer_offset = nn.Sequential(
                             nn.Linear(input_dim, 8),
-                            nn.LeakyReLU())
+                            nn.BatchNorm1d(8),
+                            nn.Tanh()
+                            )
                             
                             
     def forward(self, z):
@@ -64,7 +67,7 @@ class Decoder(nn.Module):
         result = self.decoder(z)
         result_cp = self.final_layer_centerpoint(result)
         result_offset = self.final_layer_offset(result)
-        return result_cp, result_offset
+        return result_offset, result_cp
         
         
         

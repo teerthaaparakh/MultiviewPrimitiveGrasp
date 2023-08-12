@@ -2,7 +2,7 @@ import numpy as np
 
 STICK_LEN = 0.08
 STICK_RADIUS = 0.0005
-
+CANONICAL_LEN = 0.15
 
 OBJECT_DICTS = {
     "semi_sphere": 0,
@@ -22,3 +22,4 @@ HM_WT = 0.5
 WD_WT = 0.5
 
 NUM_TOPS = 100
+
