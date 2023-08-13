@@ -166,9 +166,9 @@ def heatmaps_to_keypoints(
         
     return roi_heatmaps
 
-def save_results(data):
+def save_results(data, iter_no):
     print("HERE, HERE, HERE", data)
-    with open('/Users/teerthaaparakh/Desktop/MultiviewPrimitiveGrasp/file.pkl', 'wb') as file:
+    with open(f'/Users/teerthaaparakh/Desktop/MultiviewPrimitiveGrasp/script_testing/check_{iter_no}.pkl', 'wb') as file:
                     pickle.dump(data, file)
     
 if __name__=="__main__":

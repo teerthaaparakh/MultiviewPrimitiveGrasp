@@ -258,8 +258,9 @@ class MyROIHeads(ROIHeads):
             # import pdb; pdb.set_trace()
             # head is only trained on positive proposals with >=1 visible keypoints.
             instances, _ = select_foreground_proposals(instances, self.num_classes)
+            
             # instances = select_proposals_with_visible_keypoints(instances)
-        
+        # import pdb; pdb.set_trace()
 
         if self.keypoint_pooler is not None:
             features = [features[f] for f in self.keypoint_in_features]
