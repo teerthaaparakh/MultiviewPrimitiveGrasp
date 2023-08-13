@@ -26,6 +26,9 @@ def get_output_dir():
 def get_eval_output_dir():
     return osp.join(get_src_dir(), "eval_output")
 
+def get_pretrained_resnet_path():
+    return osp.join(get_src_dir(), "model/pretrained_resnet/R-50.pkl")
+
 
 if __name__ == "__main__":
     print(get_dataset_dir())

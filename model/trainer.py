@@ -3,7 +3,7 @@ import sys, os, os.path as osp
 import shutil
 
 sys.path.append(os.getenv("KGN_DIR"))
-from utils.path_util import get_config_file_path, get_output_dir, get_eval_output_dir
+from utils.path_util import get_config_file_path, get_output_dir, get_eval_output_dir, get_pretrained_resnet_path
 from dataloader.dataloader_func import mapper
 from dataloader.dataloader_func_vae import mapper_vae
 from dataloader.dataset_func import dataset_function
@@ -121,8 +121,10 @@ def setup(device="cpu", config_fname=None):
     
     cfg.OUTPUT_DIR = get_output_dir()
     cfg.MODEL.DEVICE = device
+    cfg.MODEL.WEIGHTS = get_pretrained_resnet_path()
     cfg.SOLVER.IMS_PER_BATCH = 4
-    cfg.SOLVER.CHECKPOINT_PERIOD = 2
+    cfg.SOLVER.MAX_ITER = 40000
+    cfg.SOLVER.CHECKPOINT_PERIOD = 100
     cfg.MODEL.PIXEL_MEAN = (0, 0, 0, 0)  # (0.5, 0.5, 0.5, 0.1)
     cfg.MODEL.PIXEL_STD = (1, 1, 1, 1)  # (0.01, 0.01, 0.01, 0.01)
     cfg.MODEL.CENTERNET.NUM_CLASSES = 6
@@ -198,11 +200,11 @@ if __name__ == "__main__":
         cfg = setup()
 
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-    # wandb.init(sync_tensorboard=True)
-    # wandb.tensorboard.patch(root_logdir=cfg.OUTPUT_DIR)
-    # wandb.init(name="KGN", project="Original KGN",
-    #             settings=wandb.Settings(start_method="thread", console="off"))
+    wandb.init(sync_tensorboard=True)
+    wandb.tensorboard.patch(root_logdir=cfg.OUTPUT_DIR)
+    wandb.init(name="KGN", project="Original KGN",
+                settings=wandb.Settings(start_method="thread", console="off"))
 
     main_train(cfg, args)
 
-    # wandb.finish()
+    wandb.finish()
