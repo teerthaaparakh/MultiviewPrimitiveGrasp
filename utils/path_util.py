@@ -5,7 +5,8 @@ def get_src_dir():
     return os.environ["KGN_DIR"]
 
 def get_pickled_dataset():
-    return osp.join(get_src_dir(), "dataset", "pickled_datasets")
+    path = osp.join(get_src_dir(), "dataset", "pickled_datasets")
+    return path
 
 def get_dataset_dir():
     return osp.join(get_src_dir(), "dataset/ps_grasp_multi_1k")
