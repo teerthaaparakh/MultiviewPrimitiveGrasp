@@ -216,17 +216,9 @@ class MyROIHeads(ROIHeads):
             assert targets, "'targets' argument is required during training"
             proposals = self.label_and_sample_proposals(proposals, targets)
         del targets
-        # import pdb; pdb.set_trace()
-        # data = {}
-        # data["images"] = images
-        # data["targets"] = targets
-        # data["proposals"] = proposals
-        
-        # save_results(data)
-        
-
         
         if self.training:
+            
             losses = self._forward_keypoint(features, proposals)
             return proposals, losses
 
@@ -258,7 +250,7 @@ class MyROIHeads(ROIHeads):
             # import pdb; pdb.set_trace()
             # head is only trained on positive proposals with >=1 visible keypoints.
             instances, _ = select_foreground_proposals(instances, self.num_classes)
-            
+
             # instances = select_proposals_with_visible_keypoints(instances)
         # import pdb; pdb.set_trace()
 

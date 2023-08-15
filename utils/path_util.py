@@ -8,6 +8,9 @@ def get_src_dir():
 def get_dataset_dir():
     return osp.join(get_src_dir(), "dataset/ps_grasp_multi_1k")
 
+def get_test_dataset_dir():
+    return osp.join(get_src_dir(), "dataset/real_dataset")
+
 
 def get_config_file_path():
     return osp.join(get_src_dir(), "model/configs/CenterNet2_R50_1x.yaml")
@@ -27,7 +30,7 @@ def get_eval_output_dir():
     return osp.join(get_src_dir(), "eval_output")
 
 def get_pretrained_resnet_path():
-    return osp.join(get_src_dir(), "model/pretrained_resnet/R-50.pkl")
+    return osp.join(get_src_dir(), "model/pretrained_resnet/model_0000637.pth") #model/pretrained_resnet/R-50.pkl
 
 
 if __name__ == "__main__":

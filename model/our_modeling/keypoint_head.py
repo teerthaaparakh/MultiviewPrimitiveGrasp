@@ -15,7 +15,7 @@ from our_modeling.new_loss import kgn_loss, keypoint_rcnn_inference
 from torch.nn import functional as F
 
 from model.our_modeling.encode_decode import Encoder, Decoder
-from utils.util import get_grasp_features
+from utils.util import get_grasp_features, save_results
 
 from utils.post_process import post_process
 
@@ -184,6 +184,7 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
             
                 z = torch.cat((x_input, z), axis=1)
                 x_offset_output, x_cp_output = self.decoder(z)
+                
                 loss_dict = self.grasp_sampler_loss(torch.cat((x_offset_output, x_cp_output), axis = 1),
                                                     grasp_features, mu, log_var)
                 return loss_dict

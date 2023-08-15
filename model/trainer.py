@@ -123,7 +123,8 @@ def setup(device="cpu", config_fname=None):
     cfg.MODEL.DEVICE = device
     cfg.MODEL.WEIGHTS = get_pretrained_resnet_path()
     cfg.SOLVER.IMS_PER_BATCH = 4
-    cfg.SOLVER.MAX_ITER = 40000
+    cfg.SOLVER.MAX_ITER = 1 #40000
+    cfg.SOLVER.STEPS = (30000,)
     cfg.SOLVER.CHECKPOINT_PERIOD = 100
     cfg.MODEL.PIXEL_MEAN = (0, 0, 0, 0)  # (0.5, 0.5, 0.5, 0.1)
     cfg.MODEL.PIXEL_STD = (1, 1, 1, 1)  # (0.01, 0.01, 0.01, 0.01)
@@ -200,10 +201,10 @@ if __name__ == "__main__":
         cfg = setup()
 
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-    wandb.init(sync_tensorboard=True)
+    # wandb.init(sync_tensorboard=True)
     wandb.tensorboard.patch(root_logdir=cfg.OUTPUT_DIR)
     wandb.init(name="KGN", project="Original KGN",
-                settings=wandb.Settings(start_method="thread", console="off"))
+                settings=wandb.Settings(start_method="thread", console="off"), sync_tensorboard=True, mode="offline")
 
     main_train(cfg, args)
 

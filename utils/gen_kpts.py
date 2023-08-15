@@ -71,10 +71,10 @@ def generate_keypoints(
 
         height_y, width_x = depth.shape
         if (px < 0).all() or (px >= width_x).all():
-            logging.warn("Projected keypoint is outside the image [x].")
+            # logging.warn("Projected keypoint is outside the image [x].")
             projection_valid = False
         elif (py < 0).all() or (py >= height_y).all():
-            logging.warn("Projected keypoint is outside the image [y].")
+            # logging.warn("Projected keypoint is outside the image [y].")
             projection_valid = False
         else:
             projection_valid = True
@@ -205,10 +205,10 @@ def gen_kpts_norm_cano(
 
         height_y, width_x = depth.shape
         if (px < 0).all() or (px >= width_x).all():
-            logging.warn("Projected keypoint is outside the image [x].")
+            # logging.warn("Projected keypoint is outside the image [x].")
             projection_valid = False
         elif (py < 0).all() or (py >= height_y).all():
-            logging.warn("Projected keypoint is outside the image [y].")
+            # logging.warn("Projected keypoint is outside the image [y].")
             projection_valid = False
         else:
             projection_valid = True
