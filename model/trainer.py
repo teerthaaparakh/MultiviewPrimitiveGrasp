@@ -1,7 +1,7 @@
 import wandb
 import sys, os, os.path as osp
 import shutil
-
+import pickle
 sys.path.append(os.getenv("KGN_DIR"))
 from utils.path_util import get_config_file_path, get_output_dir, get_eval_output_dir, get_pretrained_resnet_path
 from dataloader.dataloader_func import mapper
@@ -19,7 +19,7 @@ import logging
 from detectron2.data import DatasetCatalog
 from detectron2.config import CfgNode as CN
 from detectron2.evaluation import verify_results
-
+from utils.path_util import get_pickled_dataset
 from IPython import embed
 
 setup_logger()
@@ -187,11 +187,29 @@ if __name__ == "__main__":
     args = default_argument_parser()
     Instances.__getitem__ = __newgetitem__
     
-    DatasetCatalog.register("KGN_train_dataset", lambda: dataset_function(NUM_TRAINING_DATA))
-    DatasetCatalog.register("KGN_test_dataset", lambda: dataset_function(NUM_TEST_DATA))
-    
-    DatasetCatalog.register("KGN_VAE_train_dataset", lambda: dataset_function_vae(NUM_TRAINING_DATA))
-    DatasetCatalog.register("KGN_VAE_test_dataset", lambda: dataset_function_vae(NUM_TEST_DATA))
+
+    use_pickled = True
+
+    if use_pickled:
+        
+        def load_dataset(name):
+            path = osp.join(get_pickled_dataset(), f"{name}.pkl")
+            assert osp.exists(path), f"no pickled file at {path}.pkl found"
+            with open(path, 'rb') as f:
+                result = pickle.load(f)
+            logging.info(f"Dataset {name} loaded. Length of dataset: {len(result)}")
+            return result
+        
+        DatasetCatalog.register("KGN_train_dataset", lambda: load_dataset("sim_train"))
+        DatasetCatalog.register("KGN_test_dataset", lambda: load_dataset("sim_test"))        
+        DatasetCatalog.register("KGN_VAE_train_dataset", lambda: load_dataset("sim_train_vae"))
+        DatasetCatalog.register("KGN_VAE_test_dataset", lambda: load_dataset("sim_test_vae"))
+
+    else:
+        DatasetCatalog.register("KGN_train_dataset", lambda: dataset_function(NUM_TRAINING_DATA))
+        DatasetCatalog.register("KGN_test_dataset", lambda: dataset_function(NUM_TEST_DATA))        
+        DatasetCatalog.register("KGN_VAE_train_dataset", lambda: dataset_function_vae(NUM_TRAINING_DATA))
+        DatasetCatalog.register("KGN_VAE_test_dataset", lambda: dataset_function_vae(NUM_TEST_DATA))
     
     args = args.parse_args()
     args.num_gpus = 1
