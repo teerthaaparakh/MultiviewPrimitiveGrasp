@@ -9,8 +9,6 @@ def dataset_function_vae(total_num_data):
     ll = dataset_function(total_num_data)
     ret_ll = []
     
-    
-    
     total_data_count = 0
     
     for data in ll:

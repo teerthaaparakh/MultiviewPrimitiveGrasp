@@ -15,7 +15,7 @@ def get_area(bbox):
     return height * width
 
 
-def get_ori_clss(kpts_2d, ori_range=[-np.pi / 2, np.pi / 2]):
+def get_orientation_class(kpts_2d, ori_range=[-np.pi / 2, np.pi / 2]):
     # kpts_2d: (num_grasps, 4, 2)
     kpt_2 = kpts_2d[:, 1, :]
     kpt_3 = kpts_2d[:, 2, :]

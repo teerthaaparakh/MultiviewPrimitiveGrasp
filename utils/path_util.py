@@ -5,13 +5,13 @@ def get_src_dir():
     return os.environ["KGN_DIR"]
 
 def get_pickled_dataset():
-    return osp.join(get_src_dir(), "dataset", "pickled_datasets")
+    return osp.join(get_src_dir(), "data", "pickled_datasets")
 
-def get_dataset_dir():
-    return osp.join(get_src_dir(), "dataset/ps_grasp_multi_1k")
+def get_data_dir():
+    return osp.join(get_src_dir(), "data/ps_grasp_multi_1k")
 
 def get_test_dataset_dir():
-    return osp.join(get_src_dir(), "dataset/real_dataset")
+    return osp.join(get_src_dir(), "data/real_dataset")
 
 
 def get_config_file_path():
@@ -35,5 +35,5 @@ def get_pretrained_resnet_path():
     return osp.join(get_src_dir(), "model/pretrained_resnet/model_0000637.pth") #model/pretrained_resnet/R-50.pkl
 
 
-if __name__ == "__main__":
-    print(get_dataset_dir())
+# if __name__ == "__main__":
+#     print(get_dataset_dir())

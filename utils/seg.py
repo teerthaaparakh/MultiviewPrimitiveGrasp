@@ -41,20 +41,6 @@ def draw_bb(ll, image):
     return image
 
 
-def generate_bbox(seg_img_path):
-    seg_img = cv2.imread(seg_img_path, cv2.IMREAD_UNCHANGED)
-    indices = np.unique(seg_img)[1:]
-
-    ll = {}
-    for idx in indices:
-        kernel = np.ones((3, 3), np.uint8)
-        new_seg = seg_img == idx
-        new_seg = cv2.erode(new_seg.astype(np.uint8), kernel)
-        bb = get_bb(new_seg)
-        if bb:
-            ll[idx] = bb
-
-    return ll
 
 
 if __name__ == "__main__":
