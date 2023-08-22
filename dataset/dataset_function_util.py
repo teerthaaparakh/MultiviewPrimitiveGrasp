@@ -21,14 +21,16 @@ def get_kpts_3d(pose, width, cam_extr, world=False):
     Returns
         kpts_3d: 3x4 (xyz for each of the four keypoints)
     """
+    # width = CANONICAL_LEN
+    length = STICK_LEN / 2
     kpts_local_vertex = [
         [0, 0, width / 2],
-        [-STICK_LEN, 0, width / 2],
-        [-STICK_LEN, 0, -width / 2],
+        [-length, 0, width / 2],
+        [-length, 0, -width / 2],
         [0, 0, -width / 2],
     ]
     kpts_3d = pose @ np.concatenate((kpts_local_vertex, np.ones((4, 1))), axis=1).T
-    if not world:
+    if world:
         return kpts_3d[:3, :].T
     else:
         X_WC = cam_extr
@@ -46,6 +48,7 @@ def get_kpts_2d(kpts_3d_cam, cam_intr):
     Returns
         4x2 (x, y projection of the 4 keypoints on the image)
     """
+    cam_intr = np.array(cam_intr)
     fx = cam_intr[0, 0]
     fy = cam_intr[1, 1]
     cx = cam_intr[0, 2]
@@ -53,7 +56,7 @@ def get_kpts_2d(kpts_3d_cam, cam_intr):
 
     px = (kpts_3d_cam[:, 0] * fx / kpts_3d_cam[:, 2]) + cx
     py = (kpts_3d_cam[:, 1] * fy / kpts_3d_cam[:, 2]) + cy
-    return np.hstack((px, py))
+    return np.stack((px, py), axis=-1)
 
 
 def get_kpts_2d_validity(kpts_2d, img_height, img_width):
@@ -103,13 +106,15 @@ def get_kpts_2d_detectron(
         center_3d_cam = (kpts_3d_cam[0] + kpts_3d_cam[3]) / 2
         scale = center_3d_cam[2]
 
-        px, py = kpts_2d[:, 1], kpts_2d[:, 0]
+        px, py = kpts_2d[:, 0], kpts_2d[:, 1]
         px = np.clip(np.int32(px), 0, w - 1)
         py = np.clip(np.int32(py), 0, h - 1)
 
-        clipped_kpts_2d = np.hstack((px, py))
+        clipped_kpts_2d = np.stack((px, py), axis=-1)
         offsets = scale * (clipped_kpts_2d - center_2d) / np.array([w, h])
         assert offsets.shape == (4, 2)
+
+        offsets = clipped_kpts_2d
 
         depth_val = depth[clipped_kpts_2d[:, 1], clipped_kpts_2d[:, 0]]
         kpts_depth = kpts_3d_cam[:, 2]
@@ -132,7 +137,7 @@ def process_grasp(grasp_pose, grasp_width, cam_extr, cam_intr, depth):
     """
     returns a dictionary with keys: offset_kpts, center_2d, scale, valid
     """
-    kpts_3d_cam = get_kpts_3d(grasp_pose, grasp_width, cam_extr=cam_extr, world=True)
+    kpts_3d_cam = get_kpts_3d(grasp_pose, grasp_width, cam_extr=cam_extr, world=False)
     kpts_2d = get_kpts_2d(kpts_3d_cam, cam_intr=cam_intr)
     grasp_projection_dict = get_kpts_2d_detectron(kpts_2d, kpts_3d_cam, depth)
     return grasp_projection_dict
@@ -161,13 +166,18 @@ def get_per_obj_processed_grasps(poses, widths, cam_extr, cam_intr, depth):
 
 
 def draw_grasp_on_image(image, grasp_dict, name=None):
-    kpts_2d = grasp_dict["offset_kpts"] / grasp_dict["scale"] + grasp_dict["center_2d"]
-    assert kpts_2d.shape == (4, 3)
-    px, py, v = kpts_2d.T
+    h, w = image.shape[:2]
+    v =  grasp_dict["offset_kpts"][:, 2]
+    offsets_scaled = np.array([[w, h]]) * grasp_dict["offset_kpts"][:, :2] / grasp_dict["scale"]
+    kpts_2d = grasp_dict["center_2d"][:2].reshape((1, 2)) + offsets_scaled
+    # kpts_2d = grasp_dict["offset_kpts"][:, :2]
+    assert kpts_2d.shape == (4, 2)
+    px, py = kpts_2d.T.astype(np.int64)
+    # print("inside_draw_on_image", px, py, v)
     colors = [(255, 0, 0), (0, 255, 240), (0, 255, 0), (0, 0, 255), (240, 240, 0)]
     yellow = (255, 255, 240)
 
-    # image = copy(image)[:, :, ::-1].astype(np.uint8)
+    image = copy(image).astype(np.uint8)
     for i in range(len(px)):
         if np.abs(v[i] - 2) < 1e-3:
             image = cv2.circle(
@@ -189,16 +199,21 @@ def draw_grasp_on_image(image, grasp_dict, name=None):
 def visualize_datapoint(datapoint):
     """
     datapoint represents an elements from the dataset list used by detectron
+    TODO: check the orientation bin
     """
+
+    os.makedirs(get_debug_img_dir(), exist_ok=True)
     rgb = copy(cv2.imread(datapoint["file_name"]))
 
-    for obj_dict in datapoint["annotations"]:
+    for idx, obj_dict in enumerate(datapoint["annotations"]):
         #  bbox is (min_col, min_row, max_col, max_row)
         bbox = obj_dict["bbox"]
         img_with_obj_bb = cv2.rectangle(rgb, bbox[:2], bbox[2:], color=(127, 0, 255), thickness=1)
 
+        # img_with_obj_bb = copy(img_with_obj_bb)
         # drawing any 5 random chosen grasps for the object
         num_grasps = len(obj_dict["centers"])
+        print(f"    object id {idx}, num_grasps {num_grasps}")
         k = min(5, num_grasps)
         indices = random.sample(range(num_grasps), k=k)
 
@@ -208,6 +223,7 @@ def visualize_datapoint(datapoint):
                 "center_2d": obj_dict["centers"][i],
                 "scale": obj_dict["scales"][i]
             }
+            # print("grasp dict", grasp_dict)
             rgb = draw_grasp_on_image(img_with_obj_bb, grasp_dict)
 
     scene_id = datapoint["scene_id"]

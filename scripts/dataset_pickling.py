@@ -36,8 +36,8 @@ def create_pickled_data():
 
 
 # dict_keys(['intrinsic', 'camera_poses', 'grasp_poses', 'grasp_widths', 'grasp_collision', 'obj_types', 'obj_dims', 'obj_poses'])
-def fix_data() -> None:
-    data_dir = path_util.get_data_dir()
-    scene_name = Path(data_dir).glob("*/color_images/color_image_*.png")
-    pass
+# def fix_data() -> None:
+#     data_dir = path_util.get_data_dir()
+#     scene_name = Path(data_dir).glob("*/color_images/color_image_*.png")
+#     pass
 

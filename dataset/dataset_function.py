@@ -11,7 +11,7 @@ import json
 from detectron2.structures import BoxMode
 import cv2
 from utils.seg import get_bb
-from dataset.dataset_function_util import get_per_obj_processed_grasps
+from dataset.dataset_function_util import get_per_obj_processed_grasps, visualize_datapoint
 
 def get_scene_data_item(scene_data, bboxes, rgb, depth, cam_extr, cam_intr, index):
     obj_pose = np.array(scene_data["obj_poses"][index])  # 4x4
@@ -77,7 +77,7 @@ def get_scene_and_image_id(color_image_path):
     return scene_id, img_id
 
 
-def load_dataset(data_dir) -> T.List[T.Dict]:
+def load_dataset(data_dir, draw=False) -> T.List[T.Dict]:
     """
     Requires the data_dir to have the following structure:
     data_dir
@@ -104,6 +104,8 @@ def load_dataset(data_dir) -> T.List[T.Dict]:
         glob(os.path.join(data_dir, "*/color_images/*.png"), recursive=True)
     )
     for idx, color_image_path in enumerate(color_files_lst):
+
+        print(f"Processing datapoint: {idx}")
         scene_id, img_id = get_scene_and_image_id(color_image_path)
         scene_path = osp.join(data_dir, scene_id)
 
@@ -155,6 +157,9 @@ def load_dataset(data_dir) -> T.List[T.Dict]:
         current_dict["annotations"] = annotations
         current_dict["num_grasps"] = num_grasps
         list_dict.append(current_dict)
+
+        if draw:
+            visualize_datapoint(current_dict)
 
     return list_dict
 

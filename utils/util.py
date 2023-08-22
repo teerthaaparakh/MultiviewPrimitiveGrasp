@@ -29,8 +29,7 @@ def get_orientation_class(kpts_2d, ori_range=[-np.pi / 2, np.pi / 2]):
     delta_x = kpt_3x - kpt_2x
     delta_y = kpt_3y - kpt_2y
 
-    angle = np.arctan(delta_y / delta_x) + np.pi / 2
-
+    angle = np.arctan2(delta_y, delta_x) + np.pi / 2
     bin_index = np.floor(angle / ((ori_range[1] - ori_range[0]) / NUM_BINS)).astype(int)
     return bin_index  # (num_grasps,)
 
