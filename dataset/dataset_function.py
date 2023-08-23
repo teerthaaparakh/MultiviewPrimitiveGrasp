@@ -153,7 +153,7 @@ def load_dataset(data_dir, draw=False) -> T.List[T.Dict]:
                 
                 num_grasps.append(len(obj_dict["centers"]))
                 annotations.append(obj_dict)
-
+                
         current_dict["annotations"] = annotations
         current_dict["num_grasps"] = num_grasps
         list_dict.append(current_dict)

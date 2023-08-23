@@ -112,9 +112,10 @@ def get_kpts_2d_detectron(
 
         clipped_kpts_2d = np.stack((px, py), axis=-1)
         offsets = scale * (clipped_kpts_2d - center_2d) / np.array([w, h])
+        
         assert offsets.shape == (4, 2)
 
-        offsets = clipped_kpts_2d
+        # offsets = clipped_kpts_2d
 
         depth_val = depth[clipped_kpts_2d[:, 1], clipped_kpts_2d[:, 0]]
         kpts_depth = kpts_3d_cam[:, 2]
@@ -140,6 +141,7 @@ def process_grasp(grasp_pose, grasp_width, cam_extr, cam_intr, depth):
     kpts_3d_cam = get_kpts_3d(grasp_pose, grasp_width, cam_extr=cam_extr, world=False)
     kpts_2d = get_kpts_2d(kpts_3d_cam, cam_intr=cam_intr)
     grasp_projection_dict = get_kpts_2d_detectron(kpts_2d, kpts_3d_cam, depth)
+    
     return grasp_projection_dict
 
 
@@ -150,6 +152,7 @@ def get_per_obj_processed_grasps(poses, widths, cam_extr, cam_intr, depth):
     num_grasps = len(poses)
     for idx in range(num_grasps):
         grasp_dict = process_grasp(poses[idx], widths[idx], cam_extr, cam_intr, depth)
+        
         for k in dict_keys:
             combined_dicts[k].append(grasp_dict[k])
 
@@ -161,7 +164,7 @@ def get_per_obj_processed_grasps(poses, widths, cam_extr, cam_intr, depth):
     combined_dicts["orientation_bin"] = get_orientation_class(
         combined_dicts["offset_kpts"]
     )
-
+    
     return combined_dicts
 
 
@@ -223,6 +226,7 @@ def visualize_datapoint(datapoint):
                 "center_2d": obj_dict["centers"][i],
                 "scale": obj_dict["scales"][i]
             }
+            
             # print("grasp dict", grasp_dict)
             rgb = draw_grasp_on_image(img_with_obj_bb, grasp_dict)
 
