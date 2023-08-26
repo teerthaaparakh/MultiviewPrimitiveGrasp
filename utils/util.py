@@ -15,7 +15,7 @@ def get_area(bbox):
     return height * width
 
 
-def get_orientation_class(kpts_2d, ori_range=[-np.pi / 2, np.pi / 2]):
+def get_orientation_class(kpts_2d, ori_range=[0, np.pi]):
     # kpts_2d: (num_grasps, 4, 2)
     kpt_2 = kpts_2d[:, 1, :]
     kpt_3 = kpts_2d[:, 2, :]
@@ -29,8 +29,11 @@ def get_orientation_class(kpts_2d, ori_range=[-np.pi / 2, np.pi / 2]):
     delta_x = kpt_3x - kpt_2x
     delta_y = kpt_3y - kpt_2y
 
-    angle = np.arctan2(delta_y, delta_x) + np.pi / 2
-    bin_index = np.floor(angle / ((ori_range[1] - ori_range[0]) / NUM_BINS)).astype(int)
+    angle = np.arctan2(delta_y, delta_x) 
+    angle[angle < 0] += np.pi
+    
+    bin_size = (ori_range[1] - ori_range[0]) / NUM_BINS
+    bin_index = np.floor(angle / bin_size).astype(int)
     return bin_index  # (num_grasps,)
 
 

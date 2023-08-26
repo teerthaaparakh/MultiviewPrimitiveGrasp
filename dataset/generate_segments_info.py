@@ -10,16 +10,6 @@ import matplotlib.pyplot as plt
 from segment_anything import sam_model_registry, SamPredictor
 import pickle
 
-def get_scene_and_image_id(color_image_path):
-    path_elements = color_image_path.split(os.sep)
-    assert path_elements[-1].startswith(
-        "color_image_"
-    ), "the image file does not start with color_image_"
-    scene_id = path_elements[-3]
-    img_id = int(path_elements[-1].replace("color_image_", "")[:-4])
-    return scene_id, img_id
-
-
 def show_mask(mask, ax, random_color=False):
     if random_color:
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
@@ -75,7 +65,8 @@ class SAM:
 
 
     def run_sam(self, data_dir, scene_id, img_id):
-        scene_path = osp.join(data_dir, scene_id)
+        print(f"Scene: {scene_id}, Image: {img_id}")
+        scene_path = osp.join(data_dir, f"{scene_id}")
         color_fname = osp.join(
                 scene_path, f"color_images/color_image_{img_id}.png"
             )
@@ -83,7 +74,7 @@ class SAM:
         self.sam_predictor.set_image(rgb, image_format="RGB")
 
         sam_features = self.sam_predictor.get_image_embedding()
-
+        print(sam_features.shape)
         os.makedirs(osp.join(scene_path, "sam_features"), exist_ok=True)
         with open(osp.join(scene_path, f"sam_features/{img_id}.pkl"), 'wb') as f:
             pickle.dump(sam_features, f)

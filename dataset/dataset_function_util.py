@@ -191,6 +191,13 @@ def draw_grasp_on_image(image, grasp_dict, name=None):
                 image, (px[i], py[i]), radius=3, color=yellow, thickness=2
             )
 
+    cx, cy = grasp_dict["center_2d"][:2].astype(np.uint16)
+    orientation_bin = str(grasp_dict["orientation_bin"])
+
+    cv2.putText(image, orientation_bin, (cx, cy), 
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 
+                2, cv2.LINE_AA)
+
     for i in range(len(px) - 1):
         image = cv2.line(
             image, (px[i], py[i]), (px[i + 1], py[i + 1]), (255, 255, 255), thickness=1
@@ -224,7 +231,8 @@ def visualize_datapoint(datapoint):
             grasp_dict = {
                 "offset_kpts": obj_dict["keypoints"][i],
                 "center_2d": obj_dict["centers"][i],
-                "scale": obj_dict["scales"][i]
+                "scale": obj_dict["scales"][i],
+                "orientation_bin": obj_dict["ori_clss"][i],
             }
             
             # print("grasp dict", grasp_dict)
