@@ -22,4 +22,3 @@ HM_WT = 0.5
 WD_WT = 0.5
 
 NUM_TOPS = 100
-

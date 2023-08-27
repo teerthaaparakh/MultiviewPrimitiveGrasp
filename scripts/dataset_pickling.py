@@ -11,27 +11,28 @@ from utils.path_util import get_pickled_dataset
 from utils import path_util
 from pathlib import Path
 
+
 def create_pickled_data():
     os.makedirs(get_pickled_dataset(), exist_ok=True)
 
     path = osp.join(get_pickled_dataset(), "sim_train.pkl")
     result_training = dataset_function(NUM_TRAINING_DATA)
-    with open(path, 'wb') as f:
+    with open(path, "wb") as f:
         pickle.dump(result_training, f)
 
     path = osp.join(get_pickled_dataset(), "sim_test.pkl")
     result_training = dataset_function(NUM_TEST_DATA)
-    with open(path, 'wb') as f:
+    with open(path, "wb") as f:
         pickle.dump(result_training, f)
 
     path = osp.join(get_pickled_dataset(), "sim_train_vae.pkl")
     result_training = dataset_function_vae(NUM_TRAINING_DATA)
-    with open(path, 'wb') as f:
+    with open(path, "wb") as f:
         pickle.dump(result_training, f)
 
     path = osp.join(get_pickled_dataset(), "sim_test_vae.pkl")
     result_training = dataset_function_vae(NUM_TEST_DATA)
-    with open(path, 'wb') as f:
+    with open(path, "wb") as f:
         pickle.dump(result_training, f)
 
 
@@ -40,4 +41,3 @@ def create_pickled_data():
 #     data_dir = path_util.get_data_dir()
 #     scene_name = Path(data_dir).glob("*/color_images/color_image_*.png")
 #     pass
-

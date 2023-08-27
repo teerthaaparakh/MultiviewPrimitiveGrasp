@@ -7,8 +7,6 @@ import json
 from IPython import embed
 
 
-
-
 # def load_scene(scene_id):
 #     dataset_dir = get_dataset_dir()
 #     imgs_path = os.path.join(dataset_dir, str(scene_id), "color_images")

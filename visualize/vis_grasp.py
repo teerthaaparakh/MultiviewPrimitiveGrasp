@@ -35,14 +35,23 @@ def ViewGrasps(vis, poses=None, grip_widths=None, name=None, freq=100):
         X_pose_cl3[:3, 3] = [-stick_len, 0, 0]
 
         vis.view_cylinder(
-            stick_len, stick_radius, X_pose=pose @ X_pose_cl1, name=f"scene/cl{i}1",
-            color=0xFF0000
+            stick_len,
+            stick_radius,
+            X_pose=pose @ X_pose_cl1,
+            name=f"scene/cl{i}1",
+            color=0xFF0000,
         )  # side stick
         vis.view_cylinder(
-            stick_len, stick_radius, X_pose=pose @ X_pose_cl2, name=f"scene/cl{i}2",
-            color=0x0000FF
+            stick_len,
+            stick_radius,
+            X_pose=pose @ X_pose_cl2,
+            name=f"scene/cl{i}2",
+            color=0x0000FF,
         )  # side stick
         vis.view_cylinder(
-            grip_width, stick_radius, X_pose=pose @ X_pose_cl3, name=f"scene/cl{i}3",
-            color=0x00FF00
+            grip_width,
+            stick_radius,
+            X_pose=pose @ X_pose_cl3,
+            name=f"scene/cl{i}3",
+            color=0x00FF00,
         )  # mid stick

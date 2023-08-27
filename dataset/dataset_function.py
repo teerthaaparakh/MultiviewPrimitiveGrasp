@@ -11,7 +11,12 @@ import json
 from detectron2.structures import BoxMode
 import cv2
 from utils.seg import get_bb
-from dataset.dataset_function_util import get_per_obj_processed_grasps, visualize_datapoint
+from dataset.dataset_function_util import (
+    get_per_obj_processed_grasps,
+    visualize_datapoint,
+)
+import random
+
 
 def get_scene_data_item(scene_data, bboxes, rgb, depth, cam_extr, cam_intr, index):
     obj_pose = np.array(scene_data["obj_poses"][index])  # 4x4
@@ -39,7 +44,8 @@ def get_scene_data_item(scene_data, bboxes, rgb, depth, cam_extr, cam_intr, inde
         "ori_clss": processed_grasps_dict["orientation_bin"][valid],
         "centers": processed_grasps_dict["center_2d"][valid],
         "keypoints": processed_grasps_dict["offset_kpts"][valid],
-        "scales":processed_grasps_dict["scale"][valid],
+        "scales": processed_grasps_dict["scale"][valid],
+        "grasp_width": processed_grasps_dict["grasp_width"][valid],
         "bbox": list(bboxes[index + 1]),
         "bbox_mode": BoxMode.XYXY_ABS,
     }
@@ -77,7 +83,7 @@ def get_scene_and_image_id(color_image_path):
     return scene_id, img_id
 
 
-def load_dataset(data_dir, draw=False) -> T.List[T.Dict]:
+def load_dataset(data_dir, num_samples=10) -> T.List[T.Dict]:
     """
     Requires the data_dir to have the following structure:
     data_dir
@@ -103,8 +109,9 @@ def load_dataset(data_dir, draw=False) -> T.List[T.Dict]:
     color_files_lst = sorted(
         glob(os.path.join(data_dir, "*/color_images/*.png"), recursive=True)
     )
-    for idx, color_image_path in enumerate(color_files_lst):
-
+    k = min(num_samples, len(color_files_lst))
+    new_color_files_lst = random.sample(color_files_lst, k=k)
+    for idx, color_image_path in enumerate(new_color_files_lst):
         print(f"Processing datapoint: {idx}")
         scene_id, img_id = get_scene_and_image_id(color_image_path)
         scene_path = osp.join(data_dir, scene_id)
@@ -146,23 +153,23 @@ def load_dataset(data_dir, draw=False) -> T.List[T.Dict]:
             # TODO (TP): good to have a comment here for what these
             # two conditions are checking
             if (j + 1 in bboxes) and (get_area(bboxes[j + 1]) > 50):
-                obj_dict = get_scene_data_item(scene_data, bboxes, rgb, depth, 
-                                               current_dict["cam_ext"],
-                                               current_dict["cam_int"],
-                                               index=j)
-                
+                obj_dict = get_scene_data_item(
+                    scene_data,
+                    bboxes,
+                    rgb,
+                    depth,
+                    current_dict["cam_ext"],
+                    current_dict["cam_int"],
+                    index=j,
+                )
+
                 num_grasps.append(len(obj_dict["centers"]))
                 annotations.append(obj_dict)
-                
+
         current_dict["annotations"] = annotations
         current_dict["num_grasps"] = num_grasps
         list_dict.append(current_dict)
 
-        if draw:
-            visualize_datapoint(current_dict)
+        
 
     return list_dict
-
-
-
-

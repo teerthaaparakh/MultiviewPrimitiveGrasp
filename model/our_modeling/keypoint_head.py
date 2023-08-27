@@ -19,6 +19,7 @@ from utils.util import get_grasp_features, save_results
 
 from utils.post_process import post_process
 
+
 @ROI_KEYPOINT_HEAD_REGISTRY.register()
 class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
     """
@@ -43,27 +44,28 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         eval_output_dir=None,
         **kwargs
     ):
-
         super().__init__(**kwargs)
 
         self.loss_weight_tuple = loss_weight_tuple
         self.use_vae = use_vae
         in_channels = input_shape.channels
-        
+
         self.eval_save_results = eval_save_results
-        
+
         self.eval_output_dir = eval_output_dir
-            
 
         if self.use_vae:
             self.avg_pool = nn.AvgPool2d((input_shape.height, input_shape.width))
-            self.encoder = Encoder(in_channels+num_outputs_vae, hidden_dims, latent_dim)
-            self.decoder = Decoder(hidden_dims, latent_dim+in_channels, num_outputs_vae)
+            self.encoder = Encoder(
+                in_channels + num_outputs_vae, hidden_dims, latent_dim
+            )
+            self.decoder = Decoder(
+                hidden_dims, latent_dim + in_channels, num_outputs_vae
+            )
             self.latent_dim = latent_dim
-            
+
         else:
             up_scale = 2.0
-            
 
             for idx, layer_channels in enumerate(conv_dims, 1):
                 module = Conv2d(in_channels, layer_channels, 3, stride=1, padding=1)
@@ -101,13 +103,13 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
             ret["num_keypoints"] = None
         ret["num_outputs"] = cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_OUTPUTS
         ret["loss_weight_tuple"] = cfg.MODEL.ROI_KEYPOINT_HEAD.LOSS_WEIGHT_TUPLE
-        
+
         ret["use_vae"] = cfg.MODEL.ROI_KEYPOINT_HEAD.USE_VAE
         if ret["use_vae"]:
             ret["hidden_dims"] = cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.HIDDEN_DIMS
             ret["latent_dim"] = cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.LATENT_DIM
             ret["num_outputs_vae"] = cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.NUM_OUTPUTS_VAE
-                  
+
         normalize_by_visible = (
             cfg.MODEL.ROI_KEYPOINT_HEAD.NORMALIZE_LOSS_BY_VISIBLE_KEYPOINTS
         )  # noqa
@@ -130,10 +132,10 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         ret["eval_save_results"] = cfg.TEST.EVAL_SAVE_RESULTS
         if ret["eval_save_results"]:
             ret["eval_output_dir"] = cfg.TEST.EVAL_OUTPUT_DIR
-            
+
         return ret
 
-    def forward(self, x_input:torch.Tensor, instances: List[Instances]):
+    def forward(self, x_input: torch.Tensor, instances: List[Instances]):
         """
         Args:
             x: input 4D region feature(s) provided by :class:`ROIHeads`.
@@ -147,7 +149,7 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         Returns:
             A dict of losses if in training. The predicted "instances" if in inference.
         """
-        
+
         if not self.use_vae:
             x_output = self.layers(x_input)
             if self.training:
@@ -167,32 +169,36 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
             else:
                 keypoint_rcnn_inference(x_output, instances)
                 return instances
-            
+
         else:
-            
             # import pdb; pdb.set_trace()
-            
+
             x_input = self.avg_pool(x_input)
-            x_input = x_input.flatten(start_dim = 1)
-            
+            x_input = x_input.flatten(start_dim=1)
+
             if self.training:
-                grasp_features = get_grasp_features(instances)  # kpts offset + centerpoints
-                x_concat = torch.cat((x_input, grasp_features), axis = 1)
-        
-                mu, log_var = self.encoder(x_concat) # batch size x num_latents
+                grasp_features = get_grasp_features(
+                    instances
+                )  # kpts offset + centerpoints
+                x_concat = torch.cat((x_input, grasp_features), axis=1)
+
+                mu, log_var = self.encoder(x_concat)  # batch size x num_latents
                 z = self.reparameterize(mu, log_var)  # batch size x num_latents
-            
+
                 z = torch.cat((x_input, z), axis=1)
                 x_offset_output, x_cp_output = self.decoder(z)
-                
-                loss_dict = self.grasp_sampler_loss(torch.cat((x_offset_output, x_cp_output), axis = 1),
-                                                    grasp_features, mu, log_var)
+
+                loss_dict = self.grasp_sampler_loss(
+                    torch.cat((x_offset_output, x_cp_output), axis=1),
+                    grasp_features,
+                    mu,
+                    log_var,
+                )
                 return loss_dict
             else:
                 self.grasp_sampler_inference(x_input, instances)
                 return instances
-            
-            
+
     def layers(self, x):
         for layer in self:
             x = layer(x)
@@ -200,7 +206,6 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
             x, scale_factor=self.up_scale, mode="bilinear", align_corners=False
         )
         return x
-
 
     def reparameterize(self, mu, logvar):
         """
@@ -212,10 +217,11 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         """
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
-        return eps * std + mu   
-    
-    
-    def grasp_sampler_loss(self, grasp_features_output, grasp_features_input, mu, log_var) -> dict:
+        return eps * std + mu
+
+    def grasp_sampler_loss(
+        self, grasp_features_output, grasp_features_input, mu, log_var
+    ) -> dict:
         """
         Computes the VAE loss function.
         KL(N(\mu, \sigma), N(0, 1)) = \log \frac{1}{\sigma} + \frac{\sigma^2 + \mu^2}{2} - \frac{1}{2}
@@ -224,23 +230,18 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         :return:
         """
         recons_loss = F.mse_loss(grasp_features_output, grasp_features_input)
-        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+        kld_loss = torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+        )
         loss = recons_loss + kld_loss
-        return {'loss': loss}
+        return {"loss": loss}
 
     def grasp_sampler_inference(self, x_input, instances):
-        
         num_samples = len(x_input)
         z = torch.randn(num_samples, self.latent_dim)
-        x_concat = torch.cat((x_input, z), axis = 1)
-        output  = self.decoder(x_concat)
+        x_concat = torch.cat((x_input, z), axis=1)
+        output = self.decoder(x_concat)
         post_process(output, instances)
-    
 
 
 #  x = dataset_dicts[0]; annotations = x["annotations"]; ann = annotations[0]
-    
-
-    
-    
-

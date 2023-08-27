@@ -2,8 +2,14 @@ import wandb
 import sys, os, os.path as osp
 import shutil
 import pickle
+
 sys.path.append(os.getenv("KGN_DIR"))
-from utils.path_util import get_config_file_path, get_output_dir, get_eval_output_dir, get_pretrained_resnet_path
+from utils.path_util import (
+    get_config_file_path,
+    get_output_dir,
+    get_eval_output_dir,
+    get_pretrained_resnet_path,
+)
 from dataloader.dataloader_func import mapper
 from dataloader.dataloader_func_vae import mapper_vae
 from dataloader.dataset_func import dataset_function
@@ -56,7 +62,7 @@ class MyTrainer(DefaultTrainer):
                     self.before_step()
 
                     self.run_step()
-                    
+
                     self.after_step()
 
                     # if (
@@ -102,7 +108,6 @@ class MyTrainer(DefaultTrainer):
 
     @classmethod
     def build_evaluator(cls, cfg, dataset_name):
-        
         pass
 
 
@@ -118,31 +123,32 @@ def setup(device="cpu", config_fname=None):
     add_centernet_config(cfg)
     cfg.merge_from_file(config_fname)
 
-    
     cfg.OUTPUT_DIR = get_output_dir()
     cfg.MODEL.DEVICE = device
     cfg.MODEL.WEIGHTS = get_pretrained_resnet_path()
     cfg.SOLVER.IMS_PER_BATCH = 4
-    cfg.SOLVER.MAX_ITER = 1 #40000
+    cfg.SOLVER.MAX_ITER = 1  # 40000
     cfg.SOLVER.STEPS = (30000,)
     cfg.SOLVER.CHECKPOINT_PERIOD = 100
     cfg.MODEL.PIXEL_MEAN = (0, 0, 0, 0)  # (0.5, 0.5, 0.5, 0.1)
     cfg.MODEL.PIXEL_STD = (1, 1, 1, 1)  # (0.01, 0.01, 0.01, 0.01)
     cfg.MODEL.CENTERNET.NUM_CLASSES = 6
-    # cfg.MODEL.CENTERNET.POST_NMS_TOPK_TRAIN = 
+    # cfg.MODEL.CENTERNET.POST_NMS_TOPK_TRAIN =
     cfg.MODEL.CENTERNET.POST_NMS_TOPK_TEST = 50
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 6
     cfg.MODEL.KEYPOINT_ON = True
     cfg.MODEL.ROI_HEADS.NAME = "MyROIHeads"
     cfg.MODEL.ROI_KEYPOINT_HEAD.NAME = (
         "MyKeypointHead"  # KRCNNConvDeconvUpsampleHead default
-    ) 
+    )
     cfg.MODEL.ROI_KEYPOINT_HEAD.USE_VAE = True
     if cfg.MODEL.ROI_KEYPOINT_HEAD.USE_VAE:
         cfg.MODEL.ROI_KEYPOINT_HEAD.VAE = CN()
         cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.HIDDEN_DIMS = [32, 64, 128, 256, 256]
         cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.LATENT_DIM = 100
-        cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.NUM_OUTPUTS_VAE = 10 # 2 center points, 8 keypoint offsets
+        cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.NUM_OUTPUTS_VAE = (
+            10  # 2 center points, 8 keypoint offsets
+        )
         cfg.DATASETS.TRAIN = ("KGN_VAE_train_dataset",)
         cfg.DATASETS.TEST = ("KGN_VAE_test_dataset",)
     else:
@@ -164,13 +170,12 @@ def setup(device="cpu", config_fname=None):
         if os.path.exists(eval_output_dir):
             shutil.rmtree(eval_output_dir)
         os.makedirs(eval_output_dir)
-        
+
     cfg.freeze()
     return cfg
 
 
 def main_train(cfg, args):
-    
     trainer = MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
 
@@ -186,31 +191,42 @@ def predict():
 if __name__ == "__main__":
     args = default_argument_parser()
     Instances.__getitem__ = __newgetitem__
-    
 
     use_pickled = True
 
     if use_pickled:
-        
+
         def load_dataset(name):
             path = osp.join(get_pickled_dataset(), f"{name}.pkl")
             assert osp.exists(path), f"no pickled file at {path}.pkl found"
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 result = pickle.load(f)
             logging.info(f"Dataset {name} loaded. Length of dataset: {len(result)}")
             return result
-        
+
         DatasetCatalog.register("KGN_train_dataset", lambda: load_dataset("sim_train"))
-        DatasetCatalog.register("KGN_test_dataset", lambda: load_dataset("sim_test"))        
-        DatasetCatalog.register("KGN_VAE_train_dataset", lambda: load_dataset("sim_train_vae"))
-        DatasetCatalog.register("KGN_VAE_test_dataset", lambda: load_dataset("sim_test_vae"))
+        DatasetCatalog.register("KGN_test_dataset", lambda: load_dataset("sim_test"))
+        DatasetCatalog.register(
+            "KGN_VAE_train_dataset", lambda: load_dataset("sim_train_vae")
+        )
+        DatasetCatalog.register(
+            "KGN_VAE_test_dataset", lambda: load_dataset("sim_test_vae")
+        )
 
     else:
-        DatasetCatalog.register("KGN_train_dataset", lambda: dataset_function(NUM_TRAINING_DATA))
-        DatasetCatalog.register("KGN_test_dataset", lambda: dataset_function(NUM_TEST_DATA))        
-        DatasetCatalog.register("KGN_VAE_train_dataset", lambda: dataset_function_vae(NUM_TRAINING_DATA))
-        DatasetCatalog.register("KGN_VAE_test_dataset", lambda: dataset_function_vae(NUM_TEST_DATA))
-    
+        DatasetCatalog.register(
+            "KGN_train_dataset", lambda: dataset_function(NUM_TRAINING_DATA)
+        )
+        DatasetCatalog.register(
+            "KGN_test_dataset", lambda: dataset_function(NUM_TEST_DATA)
+        )
+        DatasetCatalog.register(
+            "KGN_VAE_train_dataset", lambda: dataset_function_vae(NUM_TRAINING_DATA)
+        )
+        DatasetCatalog.register(
+            "KGN_VAE_test_dataset", lambda: dataset_function_vae(NUM_TEST_DATA)
+        )
+
     args = args.parse_args()
     args.num_gpus = 1
     if args.config_file:
@@ -221,8 +237,13 @@ if __name__ == "__main__":
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
     # wandb.init(sync_tensorboard=True)
     wandb.tensorboard.patch(root_logdir=cfg.OUTPUT_DIR)
-    wandb.init(name="KGN", project="Original KGN",
-                settings=wandb.Settings(start_method="thread", console="off"), sync_tensorboard=True, mode="offline")
+    wandb.init(
+        name="KGN",
+        project="Original KGN",
+        settings=wandb.Settings(start_method="thread", console="off"),
+        sync_tensorboard=True,
+        mode="offline",
+    )
 
     main_train(cfg, args)
 

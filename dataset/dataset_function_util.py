@@ -14,6 +14,7 @@ from utils.util import get_orientation_class
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
+
 def get_kpts_3d(pose, width, cam_extr, world=False):
     """
     pose: 4x4 single grasp pose
@@ -112,7 +113,7 @@ def get_kpts_2d_detectron(
 
         clipped_kpts_2d = np.stack((px, py), axis=-1)
         offsets = scale * (clipped_kpts_2d - center_2d) / np.array([w, h])
-        
+
         assert offsets.shape == (4, 2)
 
         # offsets = clipped_kpts_2d
@@ -141,18 +142,19 @@ def process_grasp(grasp_pose, grasp_width, cam_extr, cam_intr, depth):
     kpts_3d_cam = get_kpts_3d(grasp_pose, grasp_width, cam_extr=cam_extr, world=False)
     kpts_2d = get_kpts_2d(kpts_3d_cam, cam_intr=cam_intr)
     grasp_projection_dict = get_kpts_2d_detectron(kpts_2d, kpts_3d_cam, depth)
-    
+    grasp_projection_dict["grasp_width"] = grasp_width
+
     return grasp_projection_dict
 
 
 def get_per_obj_processed_grasps(poses, widths, cam_extr, cam_intr, depth):
-    dict_keys = ["offset_kpts", "center_2d", "scale", "valid"]
+    dict_keys = ["offset_kpts", "center_2d", "scale", "valid", "grasp_width"]
     combined_dicts = {k: [] for k in dict_keys}
 
     num_grasps = len(poses)
     for idx in range(num_grasps):
         grasp_dict = process_grasp(poses[idx], widths[idx], cam_extr, cam_intr, depth)
-        
+
         for k in dict_keys:
             combined_dicts[k].append(grasp_dict[k])
 
@@ -164,14 +166,16 @@ def get_per_obj_processed_grasps(poses, widths, cam_extr, cam_intr, depth):
     combined_dicts["orientation_bin"] = get_orientation_class(
         combined_dicts["offset_kpts"]
     )
-    
+
     return combined_dicts
 
 
 def draw_grasp_on_image(image, grasp_dict, name=None):
     h, w = image.shape[:2]
-    v =  grasp_dict["offset_kpts"][:, 2]
-    offsets_scaled = np.array([[w, h]]) * grasp_dict["offset_kpts"][:, :2] / grasp_dict["scale"]
+    v = grasp_dict["offset_kpts"][:, 2]
+    offsets_scaled = (
+        np.array([[w, h]]) * grasp_dict["offset_kpts"][:, :2] / grasp_dict["scale"]
+    )
     kpts_2d = grasp_dict["center_2d"][:2].reshape((1, 2)) + offsets_scaled
     # kpts_2d = grasp_dict["offset_kpts"][:, :2]
     assert kpts_2d.shape == (4, 2)
@@ -194,9 +198,16 @@ def draw_grasp_on_image(image, grasp_dict, name=None):
     cx, cy = grasp_dict["center_2d"][:2].astype(np.uint16)
     orientation_bin = str(grasp_dict["orientation_bin"])
 
-    cv2.putText(image, orientation_bin, (cx, cy), 
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 
-                2, cv2.LINE_AA)
+    cv2.putText(
+        image,
+        orientation_bin,
+        (cx, cy),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1,
+        (255, 255, 0),
+        2,
+        cv2.LINE_AA,
+    )
 
     for i in range(len(px) - 1):
         image = cv2.line(
@@ -205,6 +216,7 @@ def draw_grasp_on_image(image, grasp_dict, name=None):
     if name is not None:
         cv2.imwrite(name, image)
     return image
+
 
 def visualize_datapoint(datapoint):
     """
@@ -218,7 +230,9 @@ def visualize_datapoint(datapoint):
     for idx, obj_dict in enumerate(datapoint["annotations"]):
         #  bbox is (min_col, min_row, max_col, max_row)
         bbox = obj_dict["bbox"]
-        img_with_obj_bb = cv2.rectangle(rgb, bbox[:2], bbox[2:], color=(127, 0, 255), thickness=1)
+        img_with_obj_bb = cv2.rectangle(
+            rgb, bbox[:2], bbox[2:], color=(127, 0, 255), thickness=1
+        )
 
         # img_with_obj_bb = copy(img_with_obj_bb)
         # drawing any 5 random chosen grasps for the object
@@ -234,10 +248,40 @@ def visualize_datapoint(datapoint):
                 "scale": obj_dict["scales"][i],
                 "orientation_bin": obj_dict["ori_clss"][i],
             }
-            
+
             # print("grasp dict", grasp_dict)
             rgb = draw_grasp_on_image(img_with_obj_bb, grasp_dict)
 
     scene_id = datapoint["scene_id"]
     img_id = datapoint["image_id"]
     cv2.imwrite(osp.join(get_debug_img_dir(), f"{scene_id}_{img_id}.png"), rgb)
+
+
+def visualize_mapper_dict(new_dict, name):
+    rgb = new_dict["rgb"]
+    depth = new_dict["depth"]
+    os.makedirs(get_debug_img_dir(), exist_ok=True)
+    instances = new_dict["instances"]
+    bboxes = instances.gt_boxes.tensor
+    gt_keypoints = instances.gt_keypoints
+    gt_centerpoints = instances.gt_centerpoints
+    gt_scales = instances.gt_scales
+    gt_orientations = instances.gt_orientations
+    
+    for idx in range(len(bboxes)):
+        bbox = bboxes[idx]
+        rgb = cv2.rectangle(
+            rgb, bbox[:2], bbox[2:], color=(127, 0, 255), thickness=1
+        )
+        
+        grasp_dict = {
+            "offset_kpts": gt_keypoints[idx],
+            "center_2d": gt_centerpoints[idx],
+            "scale": gt_scales[idx],
+            "orientation_bin": gt_orientations[idx],
+        }
+
+            # print("grasp dict", grasp_dict)
+        rgb = draw_grasp_on_image(rgb, grasp_dict)
+        
+    cv2.imwrite(osp.join(get_debug_img_dir(), f"mapper_{name}.png"), rgb)

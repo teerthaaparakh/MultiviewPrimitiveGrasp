@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from segment_anything import sam_model_registry, SamPredictor
 import pickle
 
+
 def show_mask(mask, ax, random_color=False):
     if random_color:
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
@@ -63,21 +64,21 @@ class SAM:
         sam.to(device=device)
         self.sam_predictor = SamPredictor(sam)
 
+    # def run_sam(self, data_dir, scene_id, img_id):
+    #     print(f"Scene: {scene_id}, Image: {img_id}")
+    #     scene_path = osp.join(data_dir, f"{scene_id}")
+    #     color_fname = osp.join(scene_path, f"color_images/color_image_{img_id}.png")
+    #     rgb = cv2.cvtColor(cv2.imread(color_fname), cv2.COLOR_BGR2RGB)
+    #     self.sam_predictor.set_image(rgb, image_format="RGB")
 
-    def run_sam(self, data_dir, scene_id, img_id):
-        print(f"Scene: {scene_id}, Image: {img_id}")
-        scene_path = osp.join(data_dir, f"{scene_id}")
-        color_fname = osp.join(
-                scene_path, f"color_images/color_image_{img_id}.png"
-            )
-        rgb = cv2.cvtColor(cv2.imread(color_fname), cv2.COLOR_BGR2RGB)
-        self.sam_predictor.set_image(rgb, image_format="RGB")
+    #     sam_features = self.sam_predictor.get_image_embedding()
+    #     print(sam_features.shape)
+    #     os.makedirs(osp.join(scene_path, "sam_features"), exist_ok=True)
+    #     with open(osp.join(scene_path, f"sam_features/{img_id}.pkl"), "wb") as f:
+    #         pickle.dump(sam_features, f)
+    
+    def run(self, image):
+        self.sam_predictor.set_image(image, image_format="RGB")
 
         sam_features = self.sam_predictor.get_image_embedding()
-        print(sam_features.shape)
-        os.makedirs(osp.join(scene_path, "sam_features"), exist_ok=True)
-        with open(osp.join(scene_path, f"sam_features/{img_id}.pkl"), 'wb') as f:
-            pickle.dump(sam_features, f)
-
-
-
+        return sam_features

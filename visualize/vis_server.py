@@ -10,9 +10,11 @@ sys.path.append(os.environ["KGN_DIR"])
 # from visualize.vis_grasp import ViewGrasps
 # from visualize.vis_scene import meshcat_scene
 from utils.other_configs import STICK_LEN, STICK_RADIUS
+
 # from pyngrok import ngrok
 import cv2, json
 from utils.pcd_util import get_combined_pcd
+
 
 class VizServer:
     def __init__(self, port_vis=6000) -> None:
@@ -58,7 +60,7 @@ class VizServer:
         pose_cl3 = r_cl3.as_matrix()
 
         total_grasps = len(poses)
-        
+
         for i in range(0, total_grasps, freq):
             pose = poses[i]
             grip_width = grip_widths[i]
@@ -75,21 +77,30 @@ class VizServer:
             X_pose_cl3[:3, 3] = [-stick_len, 0, 0]
 
             self.view_cylinder(
-                stick_len, stick_radius, X_pose=pose @ X_pose_cl1, name=f"{name}/cl{i}1",
-                color=0xFF0000
+                stick_len,
+                stick_radius,
+                X_pose=pose @ X_pose_cl1,
+                name=f"{name}/cl{i}1",
+                color=0xFF0000,
             )  # side stick
             self.view_cylinder(
-                stick_len, stick_radius, X_pose=pose @ X_pose_cl2, name=f"{name}/cl{i}2",
-                color=0x0000FF
+                stick_len,
+                stick_radius,
+                X_pose=pose @ X_pose_cl2,
+                name=f"{name}/cl{i}2",
+                color=0x0000FF,
             )  # side stick
             self.view_cylinder(
-                grip_width, stick_radius, X_pose=pose @ X_pose_cl3, name=f"{name}/cl{i}3",
-                color=0x00FF00
+                grip_width,
+                stick_radius,
+                X_pose=pose @ X_pose_cl3,
+                name=f"{name}/cl{i}3",
+                color=0x00FF00,
             )  # mid stick
-
 
     def close(self):
         self.mc_vis.close()
+
 
 class VizScene(VizServer):
     def __init__(self, data_dir):
@@ -123,7 +134,6 @@ class VizScene(VizServer):
         return colors, depths, data["camera_poses"], data["intrinsic"]
 
     def load_grasps(self, scene_id):
-        
         scene_path = osp.join(self.data_dir, f"{scene_id}")
 
         json_path = os.path.join(scene_path, "scene_info.json")
@@ -133,8 +143,11 @@ class VizScene(VizServer):
         per_obj_grasp_widths = scene_data["grasp_widths"]
 
         for i in range(len(per_obj_grasp_poses)):
-            self.view_grasps(per_obj_grasp_poses[i], per_obj_grasp_widths[i], name=f"scene/grasps/{i}")
-        
+            self.view_grasps(
+                per_obj_grasp_poses[i],
+                per_obj_grasp_widths[i],
+                name=f"scene/grasps/{i}",
+            )
 
         colors, depths, camera_poses, intrinsic = self.load_scene(scene_id)
         combined_pcd, combined_color = get_combined_pcd(
@@ -145,7 +158,6 @@ class VizScene(VizServer):
         # print(per_obj_grasp_poses.shape)
 
     def overlay_grasp(self, scene_id):
-
         scene_path = osp.join(self.data_dir, f"{scene_id}")
 
         json_path = os.path.join(scene_path, "scene_info.json")
@@ -157,20 +169,24 @@ class VizScene(VizServer):
 
         colors, depths, camera_poses, intrinsic = self.load_scene(scene_id)
 
-        kpts_3d = get_kpts_3d(per_obj_grasp_poses[0][0], per_obj_grasp_widths[0][0], 
-                              None, world=True)
-        
+        kpts_3d = get_kpts_3d(
+            per_obj_grasp_poses[0][0], per_obj_grasp_widths[0][0], None, world=True
+        )
+
         combined_pcd, combined_color = get_combined_pcd(
             colors, depths, camera_poses, intrinsic
         )
 
-        
-
-        self.view_grasps(per_obj_grasp_poses[0][:1], per_obj_grasp_widths[0][:1], name=f"scene/grasps/")
+        self.view_grasps(
+            per_obj_grasp_poses[0][:1],
+            per_obj_grasp_widths[0][:1],
+            name=f"scene/grasps/",
+        )
 
         self.view_pcd(combined_pcd, combined_color)
-        self.view_pcd(kpts_3d, colors=np.zeros((4, 3)), size=0.02, name="scene/keypoints")
-
+        self.view_pcd(
+            kpts_3d, colors=np.zeros((4, 3)), size=0.02, name="scene/keypoints"
+        )
 
 
 import argparse

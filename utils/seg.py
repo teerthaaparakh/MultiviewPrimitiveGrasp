@@ -41,8 +41,6 @@ def draw_bb(ll, image):
     return image
 
 
-
-
 if __name__ == "__main__":
     scene_ind = 441
     seg_img_path = f"/Users/teerthaaparakh/Desktop/MultiviewPrimitiveGrasp/dataset/ps_grasp_multi_1k/{scene_ind}/seg_labels/segmask_label_0.jpg"

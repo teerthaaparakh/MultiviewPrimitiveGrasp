@@ -39,7 +39,6 @@ def mapper_vae(dataset_dict):
     obj_box = []
     # print("num_instances", num_instances)
     for i in range(num_instances):
-        
         object_dict = annotations[i]
         # it can have multiple keypoint sets
         keypoints = object_dict["keypoints"]
@@ -49,7 +48,7 @@ def mapper_vae(dataset_dict):
         scale = object_dict["scales"]
         # 5x1x2
 
-        all_instance_keypoints.append(keypoints.reshape(4,-1))
+        all_instance_keypoints.append(keypoints.reshape(4, -1))
         all_instance_orientation.append(torch.tensor(ori))
         all_instance_widths.append(torch.tensor(width))
         all_instance_centerpoints.append(center[None, :])
@@ -58,7 +57,6 @@ def mapper_vae(dataset_dict):
         category_ids.append(OBJECT_DICTS[object_dict["obj_type"]])
         obj_box.append(object_dict["bbox"])
 
-    
     return {
         "image": torch.from_numpy(image_input).permute(2, 0, 1).float(),
         "height": h,
@@ -68,10 +66,10 @@ def mapper_vae(dataset_dict):
             gt_classes=torch.tensor(category_ids, dtype=torch.long),
             gt_boxes=Boxes(np.array(obj_box)),
             gt_keypoints=Keypoints(np.array(all_instance_keypoints)),
-            gt_centerpoints= Keypoints(np.array(all_instance_centerpoints)),
-            gt_orientations=torch.tensor(all_instance_orientation),  # NCx1 
+            gt_centerpoints=Keypoints(np.array(all_instance_centerpoints)),
+            gt_orientations=torch.tensor(all_instance_orientation),  # NCx1
             gt_widths=torch.tensor(all_instance_widths),
-            gt_scales=torch.tensor(all_instance_scales)
+            gt_scales=torch.tensor(all_instance_scales),
         ),
     }
 
@@ -82,5 +80,5 @@ if __name__ == "__main__":
     ll = dataset_function_vae(2)
 
     dd = mapper_vae(ll[0])
-    
+
     print(dd)

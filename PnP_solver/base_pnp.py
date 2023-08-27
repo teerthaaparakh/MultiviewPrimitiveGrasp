@@ -9,6 +9,7 @@ from dataloader.dataset_func import dataset_function
 import cv2
 from IPython import embed
 
+
 def cam_pose(cam_int, points2d, points3d):
     retval, rvecs, tvecs, reprojectionError = cv2.solvePnPGeneric(
         points3d, points2d, cam_int, distCoeffs=np.array([])
@@ -16,7 +17,7 @@ def cam_pose(cam_int, points2d, points3d):
     return retval, rvecs, tvecs, reprojectionError
 
 
-def get_grasp_pose(kpts_2d, grasp_width, cam_ext, cam_int, scale = 1):
+def get_grasp_pose(kpts_2d, grasp_width, cam_ext, cam_int, scale=1):
     # local_3d = np.array(
     #     [
     #         [0, 0, grasp_width / 2],
@@ -25,13 +26,18 @@ def get_grasp_pose(kpts_2d, grasp_width, cam_ext, cam_int, scale = 1):
     #         [0, 0, -grasp_width / 2],
     #     ]
     # )
-    
-    local_3d = np.array([
-            [0, 0, CANONICAL_LEN /2],
-            [-CANONICAL_LEN, 0, CANONICAL_LEN/ 2],
-            [-CANONICAL_LEN, 0, -CANONICAL_LEN/ 2],
-            [0, 0, -CANONICAL_LEN/ 2],
-        ])*scale
+
+    local_3d = (
+        np.array(
+            [
+                [0, 0, CANONICAL_LEN / 2],
+                [-CANONICAL_LEN, 0, CANONICAL_LEN / 2],
+                [-CANONICAL_LEN, 0, -CANONICAL_LEN / 2],
+                [0, 0, -CANONICAL_LEN / 2],
+            ]
+        )
+        * scale
+    )
 
     retval, rvecs, tvecs, reprojectionError = cam_pose(cam_int, kpts_2d, local_3d)
     r = R.from_rotvec(np.array(rvecs).reshape(-1, 3))
@@ -61,6 +67,6 @@ if __name__ == "__main__":
     scene_id = data["scene_id"]
 
     grasp_pose_calc = get_grasp_pose(kpts_2d, grasp_width, cam_ext, cam_int)
-    
+
     # import pdb; pdb.set_trace()
     print(grasp_pose, grasp_pose_calc)

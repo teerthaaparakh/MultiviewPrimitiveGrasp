@@ -7,6 +7,8 @@ import random
 import math, torch
 from torch import functional as F
 import pickle
+import typing as T
+
 
 def get_area(bbox):
     min_col, min_row, max_col, max_row = bbox
@@ -17,6 +19,8 @@ def get_area(bbox):
 
 def get_orientation_class(kpts_2d, ori_range=[0, np.pi]):
     # kpts_2d: (num_grasps, 4, 2)
+    if (kpts_2d.shape) == 2:
+        kpts_2d = kpts_2d[None, ...]
     kpt_2 = kpts_2d[:, 1, :]
     kpt_3 = kpts_2d[:, 2, :]
 
@@ -29,66 +33,87 @@ def get_orientation_class(kpts_2d, ori_range=[0, np.pi]):
     delta_x = kpt_3x - kpt_2x
     delta_y = kpt_3y - kpt_2y
 
-    angle = np.arctan2(delta_y, delta_x) 
+    angle = np.arctan2(delta_y, delta_x)
     angle[angle < 0] += np.pi
-    
+
     bin_size = (ori_range[1] - ori_range[0]) / NUM_BINS
     bin_index = np.floor(angle / bin_size).astype(int)
     return bin_index  # (num_grasps,)
 
+def get_all_objects_ori_class(kpts: T.List[torch.Tensor]):
+    ret = []
+    for obj_kpts in kpts:
+        ret.append(get_orientation_class(obj_kpts))     
+    return ret
 
-    
+
 def get_grasp_features(instances):
     ret = []
     for inst in range(len(instances)):
         # get the centers points location relative to bounding box
-        instances[inst].gt_centerpoints.tensor[:,0][:,0] = instances[inst].gt_centerpoints.tensor[:,0][:,0] \
-                                                            - instances[inst].gt_boxes.tensor[:,0]
-        instances[inst].gt_centerpoints.tensor[:,0][:,1] = instances[inst].gt_centerpoints.tensor[:,0][:,1] \
-                                                            - instances[inst].gt_boxes.tensor[:,1]
-                                                    
+        instances[inst].gt_centerpoints.tensor[:, 0][:, 0] = (
+            instances[inst].gt_centerpoints.tensor[:, 0][:, 0]
+            - instances[inst].gt_boxes.tensor[:, 0]
+        )
+        instances[inst].gt_centerpoints.tensor[:, 0][:, 1] = (
+            instances[inst].gt_centerpoints.tensor[:, 0][:, 1]
+            - instances[inst].gt_boxes.tensor[:, 1]
+        )
+
         # # get the grasp keypoints location relative to bounding box
         # instances[inst].gt_keypoints.tensor[:, :, 0] = instances[inst].gt_keypoints.tensor[:, :, 0] \
         #                                             - instances[inst].gt_boxes.tensor[:,0][:, None]
-                                                    
+
         # instances[inst].gt_keypoints.tensor[:, :, 1] = instances[inst].gt_keypoints.tensor[:, :, 1] \
-        #                                             - instances[inst].gt_boxes.tensor[:,1][:, None]  
-                                                    
+        #                                             - instances[inst].gt_boxes.tensor[:,1][:, None]
+
         # scale centers and keypoints with heights and widths
-        widths = instances[inst].gt_boxes.tensor[:,2] - instances[inst].gt_boxes.tensor[:,0]
-        heights = instances[inst].gt_boxes.tensor[:,3] - instances[inst].gt_boxes.tensor[:,1]
-        
-        instances[inst].gt_centerpoints.tensor[:,0][:,0] = instances[inst].gt_centerpoints.tensor[:,0][:,0]/widths
-        instances[inst].gt_centerpoints.tensor[:,0][:,1] = instances[inst].gt_centerpoints.tensor[:,0][:,1]/heights
-        
+        widths = (
+            instances[inst].gt_boxes.tensor[:, 2]
+            - instances[inst].gt_boxes.tensor[:, 0]
+        )
+        heights = (
+            instances[inst].gt_boxes.tensor[:, 3]
+            - instances[inst].gt_boxes.tensor[:, 1]
+        )
+
+        instances[inst].gt_centerpoints.tensor[:, 0][:, 0] = (
+            instances[inst].gt_centerpoints.tensor[:, 0][:, 0] / widths
+        )
+        instances[inst].gt_centerpoints.tensor[:, 0][:, 1] = (
+            instances[inst].gt_centerpoints.tensor[:, 0][:, 1] / heights
+        )
+
         # instances[inst].gt_keypoints.tensor[:, :, 0] = instances[inst].gt_keypoints.tensor[:, :, 0]/widths[:,None]
         # instances[inst].gt_keypoints.tensor[:, :, 1] = instances[inst].gt_keypoints.tensor[:, :, 1]/heights[:,None]
-        
-        concat_features = torch.cat((instances[inst].gt_keypoints.tensor[:,:,0:2].flatten(start_dim = 1), 
-                                            instances[inst].gt_centerpoints.tensor[:,0][:, 0:2]), axis = 1)
+
+        concat_features = torch.cat(
+            (
+                instances[inst].gt_keypoints.tensor[:, :, 0:2].flatten(start_dim=1),
+                instances[inst].gt_centerpoints.tensor[:, 0][:, 0:2],
+            ),
+            axis=1,
+        )
         ret.append(concat_features)
-        
+
     return torch.cat(ret, axis=0)
-        
-        
+
+
 def custom_random_generator(array, max_items):
     array = list(array)
     if len(array) >= max_items:
-        return random.sample(array, max_items) 
+        return random.sample(array, max_items)
     else:
-        ret = [0]*max_items
-        repetition = math.floor(max_items/len(array))
-        total = repetition*len(array)
+        ret = [0] * max_items
+        repetition = math.floor(max_items / len(array))
+        total = repetition * len(array)
         remaining = max_items - total
-        ret[0: total] = array*repetition
-        ret[total: ] = random.sample(array, remaining)
+        ret[0:total] = array * repetition
+        ret[total:] = random.sample(array, remaining)
         return ret
 
 
-def kpts_to_hm(
-    instances,
-    heatmap_shape
-):  # (M,C,56,56)
+def kpts_to_hm(instances, heatmap_shape):  # (M,C,56,56)
     heatmaps = []
     _, H, W = heatmap_shape
     C = NUM_BINS
@@ -133,10 +158,7 @@ def mapper(center, box, hm_size):
 
 
 @torch.jit.script_if_tracing
-def heatmaps_to_keypoints(
-    maps: torch.Tensor, instances
-) -> dict:
-    
+def heatmaps_to_keypoints(maps: torch.Tensor, instances) -> dict:
     num_instances = [len(inst) for inst in instances]
     maps = maps.split(num_instances)
     roi_heatmaps = []
@@ -147,36 +169,38 @@ def heatmaps_to_keypoints(
         rois = instances[i].proposal_boxes.tensor
         offset_x = rois[:, 0]
         offset_y = rois[:, 1]
-        
+
         widths = (rois[:, 2] - rois[:, 0]).clamp(min=1)
         heights = (rois[:, 3] - rois[:, 1]).clamp(min=1)
-    
+
         widths_ceil = widths.ceil()
         heights_ceil = heights.ceil()
-        
+
         width_corrections = widths / widths_ceil
         height_corrections = heights / heights_ceil
-        
+
         for j in range(num_instances[i]):
             outsize = (int(heights_ceil[j]), int(widths_ceil[j]))
             roi_hmap = F.interpolate(
                 heatmap[[j]], size=outsize, mode="bicubic", align_corners=False
             )
             roi_hmaps.append(roi_hmap)
-            
+
         roi_heatmaps.append(roi_hmaps)
-        
+
     return roi_heatmaps
+
 
 def save_results(data, iter_no):
     print("HERE, HERE, HERE", data)
-    with open(f'/Users/teerthaaparakh/Desktop/MultiviewPrimitiveGrasp/script_testing/inference_{iter_no}.pkl', 'wb') as file:
-                    pickle.dump(data, file)
-    
-if __name__=="__main__":
+    with open(
+        f"/Users/teerthaaparakh/Desktop/MultiviewPrimitiveGrasp/script_testing/inference_{iter_no}.pkl",
+        "wb",
+    ) as file:
+        pickle.dump(data, file)
+
+
+if __name__ == "__main__":
     arr = range(10)
     max_items = 13
     print(custom_random_generator(arr, max_items))
-    
-    
-    

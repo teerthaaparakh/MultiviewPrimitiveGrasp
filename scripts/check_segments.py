@@ -1,10 +1,14 @@
 import os, sys
 from glob import glob
+
 sys.path.append(os.environ["KGN_DIR"])
 from dataset.generate_segments_info import SAM
 from utils.path_util import get_data_dir
 
-sam_checkpoint = "/Users/meenalp/Desktop/MEng/system_repos/new_system/sam_model/sam_vit_h_4b8939.pth"
+sam_checkpoint = (
+    "/Users/meenalp/Desktop/MEng/system_repos/new_system/sam_model/sam_vit_h_4b8939.pth"
+)
+
 
 def get_scene_and_image_id(color_image_path):
     path_elements = color_image_path.split(os.sep)
@@ -24,7 +28,6 @@ if __name__ == "__main__":
         glob(os.path.join(data_dir, "*/color_images/*.png"), recursive=True)
     )
     for idx, color_image_path in enumerate(color_files_lst):
-
         # print(f"Processing datapoint: {idx}")
         scene_id, img_id = get_scene_and_image_id(color_image_path)
         sam.run_sam(data_dir, scene_id, img_id)

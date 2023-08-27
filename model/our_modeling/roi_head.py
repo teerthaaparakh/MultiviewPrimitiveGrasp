@@ -15,6 +15,7 @@ from detectron2.modeling import ROIHeads, ROI_HEADS_REGISTRY
 
 from utils.util import save_results
 
+
 def select_foreground_proposals(
     proposals: List[Instances], bg_label: int
 ) -> Tuple[List[Instances], List[torch.Tensor]]:
@@ -210,15 +211,14 @@ class MyROIHeads(ROIHeads):
         """
         See :class:`ROIHeads.forward`.
         """
-        
+
         del images
         if self.training:
             assert targets, "'targets' argument is required during training"
             proposals = self.label_and_sample_proposals(proposals, targets)
         del targets
-        
+
         if self.training:
-            
             losses = self._forward_keypoint(features, proposals)
             return proposals, losses
 
@@ -264,5 +264,4 @@ class MyROIHeads(ROIHeads):
         else:
             features = {f: features[f] for f in self.keypoint_in_features}
 
-        
         return self.keypoint_head(features, instances)
