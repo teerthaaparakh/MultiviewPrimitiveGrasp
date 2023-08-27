@@ -50,8 +50,10 @@ def get_pretrained_resnet_path():
         get_src_dir(), "model/pretrained_resnet/model_0000637.pth"
     )  # model/pretrained_resnet/R-50.pkl
 
+
 def get_sam_model_path():
     return osp.join(get_src_dir(), "model/pretrained_sam/sam_vit_h_4b8939.pth")
+
 
 # if __name__ == "__main__":
 #     print(get_dataset_dir())

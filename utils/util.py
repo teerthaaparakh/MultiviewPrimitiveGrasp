@@ -10,6 +10,12 @@ import pickle
 import typing as T
 
 
+def set_seed():
+    np.random.seed(0)
+    random.seed(0)
+    torch.manual_seed(0)
+
+
 def get_area(bbox):
     min_col, min_row, max_col, max_row = bbox
     height = max_row - min_row
@@ -17,10 +23,11 @@ def get_area(bbox):
     return height * width
 
 
-def get_orientation_class(kpts_2d, ori_range=[0, np.pi]):
+def get_orientation_class(kpts_2d, ori_range=[0, np.pi]) -> np.ndarray:
     # kpts_2d: (num_grasps, 4, 2)
-    if (kpts_2d.shape) == 2:
-        kpts_2d = kpts_2d[None, ...]
+    # if (kpts_2d.shape) == 2:
+    #     kpts_2d = kpts_2d[None, ...]
+
     kpt_2 = kpts_2d[:, 1, :]
     kpt_3 = kpts_2d[:, 2, :]
 
@@ -40,11 +47,12 @@ def get_orientation_class(kpts_2d, ori_range=[0, np.pi]):
     bin_index = np.floor(angle / bin_size).astype(int)
     return bin_index  # (num_grasps,)
 
-def get_all_objects_ori_class(kpts: T.List[torch.Tensor]):
-    ret = []
-    for obj_kpts in kpts:
-        ret.append(get_orientation_class(obj_kpts))     
-    return ret
+
+# def get_all_objects_ori_class(kpts: T.List[torch.Tensor]):
+#     ret = []
+#     for obj_kpts in kpts:
+#         ret.append(get_orientation_class(obj_kpts))
+#     return ret
 
 
 def get_grasp_features(instances):

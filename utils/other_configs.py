@@ -4,6 +4,8 @@ STICK_LEN = 0.08
 STICK_RADIUS = 0.0005
 CANONICAL_LEN = 0.15
 
+NORMALIZATION_CONST = 500
+
 OBJECT_DICTS = {
     "semi_sphere": 0,
     "sphere": 1,

@@ -170,6 +170,4 @@ def load_dataset(data_dir, num_samples=10) -> T.List[T.Dict]:
         current_dict["num_grasps"] = num_grasps
         list_dict.append(current_dict)
 
-        
-
     return list_dict

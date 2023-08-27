@@ -76,7 +76,7 @@ class SAM:
     #     os.makedirs(osp.join(scene_path, "sam_features"), exist_ok=True)
     #     with open(osp.join(scene_path, f"sam_features/{img_id}.pkl"), "wb") as f:
     #         pickle.dump(sam_features, f)
-    
+
     def run(self, image):
         self.sam_predictor.set_image(image, image_format="RGB")
 
