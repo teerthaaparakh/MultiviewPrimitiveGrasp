@@ -81,9 +81,59 @@ def transform_img_kpts(
 
     return new_keypoints, transformed_centers
 
+def mapper_test(dataset_dict, draw=False):
+    dataset_dict = copy.deepcopy(dataset_dict)
+
+    depth = np.load(dataset_dict["depth_file_name"])
+    image = cv2.imread(dataset_dict["file_name"])[:, :, ::-1]
+    if len(depth.shape) == 2:
+        depth = depth[..., None]
+    if len(image.shape) == 2:
+        image = image[..., None]
+
+    h, w = image.shape[:2]
+    print("Image shape:", h, w)
+    # logging.info("Number of channels in image:", image.shape[2])
+
+    # num_instances == number of objects
+    annotations = dataset_dict.pop("annotations")  # number of objects in the image
+
+    num_instances = len(annotations)
+    all_instance_keypoints = []
+    all_instance_widths = []
+    all_instance_centerpoints = []
+    all_instance_orientations = []
+    all_instance_scales = []
+    all_instance_grasp_indices = []
+    category_ids = []
+    obj_box = []
+    # print("num_instances", num_instances)
+    for i in range(num_instances):
+        object_dict = annotations[i]
+        # it can have multiple keypoint sets
+        keypoints = object_dict["keypoints"]
+        width = object_dict["grasp_width"]  # 5 length vector
+        ori = object_dict["ori_clss"]  # 5 length vector
+        center = object_dict["centers"]  # 5x3
+        center = center[:, None, :]  # 5x1x2
+        scales = object_dict["scales"]
+
+        if len(keypoints) > 0:
+            sampled_idx = np.random.randint(0, len(keypoints))
+            all_instance_grasp_indices.append(sampled_idx)
+
+            all_instance_keypoints.append(torch.tensor(keypoints)[sampled_idx])
+            all_instance_orientations.append(ori[sampled_idx])
+            all_instance_widths.append(width[sampled_idx])
+            all_instance_centerpoints.append(torch.tensor(center)[sampled_idx])
+            all_instance_scales.append(scales[sampled_idx])
+
+            category_ids.append(OBJECT_DICTS[object_dict["obj_type"]])
+            obj_box.append(object_dict["bbox"])
+
 
 # Show how to implement a minimal mapper, similar to the default DatasetMapper
-def mapper(original_dataset_dict, scaled_rgb=True, draw=False):
+def mapper(original_dataset_dict, draw=False):
     dataset_dict = copy.deepcopy(original_dataset_dict)
 
     depth = np.load(dataset_dict["depth_file_name"])
@@ -144,32 +194,13 @@ def mapper(original_dataset_dict, scaled_rgb=True, draw=False):
     all_instance_scales = torch.tensor(all_instance_scales)
     all_instance_widths = torch.tensor(all_instance_widths)
 
-    # print("All instance tensor shapes:")
-    # print(f"    Keypoints:    {all_instance_keypoints.shape}")
-    # print(f"    Centerpoints: {all_instance_centerpoints.shape}")
-    # # print(f"    Centerpoints (Value): {all_instance_centerpoints}")
-    # print(f"    Orientations: {all_instance_orientations.shape}")
-    # print(f"    Scales:       {all_instance_scales.shape}")
-    # print(f"    Widths:       {all_instance_widths.shape}")
     # ///////////////////////////////////////////////////////////////
     # augmentations
     # ///////////////////////////////////////////////////////////////
     augs = T.AugmentationList(
-        [
-            # T.RandomApply(T.RandomBrightness(0.9, 1.1), prob=0.5),
-            # T.RandomFlip(prob=1.0),
-            # T.RandomCrop("absolute", (200, 200)),
-            #     T.RandomApply(
-            T.RandomRotation(
-                [-90.0, -89.0],
-                expand=True,
-                # center=[[0.3, 0.3], [0.7, 0.7]],
-                center=[[0.49, 0.49], [0.51, 0.51]],
-                sample_style="range",
-            ),
-            #     prob=0.3,
-            # )
-        ]
+            [
+                T.RandomFlip(prob=1.0),
+            ]
     )
 
     auginput = T.AugInput(image, boxes=np.array(obj_box))
@@ -190,22 +221,6 @@ def mapper(original_dataset_dict, scaled_rgb=True, draw=False):
 
     transformed_ori = get_orientation_class(transformed_kpts.numpy())
     transformed_ori = torch.from_numpy(transformed_ori)
-
-    # print("Transformed informations for an object:")
-    # print(f"    Keypoints:")
-    # print(f"        new shape: {transformed_kpts.shape}")
-    # print(f"        new: {transformed_kpts[0]}")
-    # print(f"        old: {all_instance_keypoints[0]}")
-
-    # print(f"    Centerpoints:")
-    # print(f"        new shape: {transformed_center_kpts.shape}")
-    # print(f"        new: {transformed_center_kpts[0]}")
-    # print(f"        old: {all_instance_centerpoints[0]}")
-
-    # print(f"    Orientations:")
-    # print(f"        new shape: {transformed_ori.shape}")
-    # print(f"        new: {transformed_ori[0]}")
-    # print(f"        old: {all_instance_orientations[0]}")
 
     # TODO Check for float depths
     transformed_depth = transform.apply_image(depth[:, :, 0])
@@ -278,3 +293,47 @@ def mapper(original_dataset_dict, scaled_rgb=True, draw=False):
 #     for file in files_path:
 #         with open(file, "rb") as f:
 #             data_dicts.append(pickle.load(f))
+
+
+    # print("All instance tensor shapes:")
+    # print(f"    Keypoints:    {all_instance_keypoints.shape}")
+    # print(f"    Centerpoints: {all_instance_centerpoints.shape}")
+    # # print(f"    Centerpoints (Value): {all_instance_centerpoints}")
+    # print(f"    Orientations: {all_instance_orientations.shape}")
+    # print(f"    Scales:       {all_instance_scales.shape}")
+    # print(f"    Widths:       {all_instance_widths.shape}")
+
+
+    # print("Transformed informations for an object:")
+    # print(f"    Keypoints:")
+    # print(f"        new shape: {transformed_kpts.shape}")
+    # print(f"        new: {transformed_kpts[0]}")
+    # print(f"        old: {all_instance_keypoints[0]}")
+
+    # print(f"    Centerpoints:")
+    # print(f"        new shape: {transformed_center_kpts.shape}")
+    # print(f"        new: {transformed_center_kpts[0]}")
+    # print(f"        old: {all_instance_centerpoints[0]}")
+
+    # print(f"    Orientations:")
+    # print(f"        new shape: {transformed_ori.shape}")
+    # print(f"        new: {transformed_ori[0]}")
+    # print(f"        old: {all_instance_orientations[0]}")
+
+    # augs = T.AugmentationList(
+    #     [
+    #         # T.RandomApply(T.RandomBrightness(0.9, 1.1), prob=0.5),
+    #         T.RandomFlip(prob=1.0),
+    #         # T.RandomCrop("absolute", (200, 200)),
+    #         #     T.RandomApply(
+    #         # T.RandomRotation(
+    #         #     [-30.0, -29.0],
+    #         #     expand=False,
+    #         #     # center=[[0.3, 0.3], [0.7, 0.7]],
+    #         #     center=[[0.4, 0.4], [0.6, 0.6]],
+    #         #     sample_style="range",
+    #         # ),
+    #         #     prob=0.3,
+    #         # )
+    #     ]
+    # )
