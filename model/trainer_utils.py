@@ -1,9 +1,7 @@
-import wandb
-import sys, os, os.path as osp
+import datetime
+import logging
+import os
 import shutil
-import pickle
-
-sys.path.append(os.getenv("KGN_DIR"))
 from utils.path_util import (
     get_config_file_path,
     get_output_dir,
@@ -12,28 +10,103 @@ from utils.path_util import (
 )
 from model.configs.config import add_centernet_config
 from detectron2.utils.logger import setup_logger
-import logging
-from detectron2.data import DatasetCatalog
+from detectron2.utils.logger import log_every_n_seconds
 from detectron2.config import CfgNode as CN
+import detectron2.utils.comm as comm
 
 setup_logger()
 
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultTrainer
-from detectron2.data import MetadataCatalog
 from detectron2.data import build_detection_train_loader, build_detection_test_loader
 from dataset.dataset_mapper import mapper
-from detectron2.structures import Instances
-
-from model.our_modeling.instances import __newgetitem__
-
 from utils.other_configs import *
+import wandb
+from detectron2.engine.hooks import HookBase
+import time
+import random
+import torch
 
 # head 64x64 reduced image size: for every pixel: 9 orientations heatmap, 9 widths, 9 scales,
 # 2 * dataset.num_grasp_kpts * opt.ori_num center offset, 2 center point regression
 
-from IPython import embed
-from detectron2.engine import default_argument_parser
+
+##################################################################################################
+## train evaluation hook
+##################################################################################################
+
+
+class LossEvalHook(HookBase):
+    def __init__(self, eval_period, model, data_loader):
+        self._model = model
+        self._period = eval_period
+        self._data_loader = data_loader
+        self.data_pts = []
+        for inputs in self._data_loader:
+            self.data_pts.append(inputs)
+        print("Eval period:", self._period)
+
+    def _do_loss_eval(self):
+        start_time = time.perf_counter()
+        total_compute_time = 0
+        losses = []
+
+        k = min(len(self.data_pts), 100)
+        sampled_pts = random.sample(self.data_pts, k=k)
+
+        total = len(sampled_pts)
+        num_warmup = min(5, total - 1)
+
+        for idx, inputs in enumerate(sampled_pts):
+            if idx == num_warmup:
+                start_time = time.perf_counter()
+                total_compute_time = 0
+            start_compute_time = time.perf_counter()
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            total_compute_time += time.perf_counter() - start_compute_time
+            iters_after_start = idx + 1 - num_warmup * int(idx >= num_warmup)
+            seconds_per_img = total_compute_time / iters_after_start
+            if idx >= num_warmup * 2 or seconds_per_img > 5:
+                total_seconds_per_img = (
+                    time.perf_counter() - start_time
+                ) / iters_after_start
+                eta = datetime.timedelta(
+                    seconds=int(total_seconds_per_img * (total - idx - 1))
+                )
+                log_every_n_seconds(
+                    logging.INFO,
+                    "Loss on Validation  done {}/{}. {:.4f} s / img. ETA={}".format(
+                        idx + 1, total, seconds_per_img, str(eta)
+                    ),
+                    n=5,
+                )
+            loss_batch = self._get_loss(inputs)
+            losses.append(loss_batch)
+        mean_loss = np.mean(losses)
+        self.trainer.storage.put_scalar("validation_loss", mean_loss)
+        wandb.log({"validation_loss": mean_loss})
+        comm.synchronize()
+
+        return losses
+
+    def _get_loss(self, data):
+        # How loss is calculated on train_loop
+        metrics_dict = self._model(data)
+        metrics_dict = {
+            k: v.detach().cpu().item() if isinstance(v, torch.Tensor) else float(v)
+            for k, v in metrics_dict.items()
+        }
+        total_losses_reduced = sum(loss for loss in metrics_dict.values())
+        return total_losses_reduced
+
+    def after_step(self):
+        next_iter = self.trainer.iter + 1
+        is_final = next_iter == self.trainer.max_iter
+        if is_final or ((self._period > 0) and ((next_iter % self._period) == 0)):
+            print("Next iter-----------------------------", next_iter)
+            self._do_loss_eval()
+        self.trainer.storage.put_scalars(timetest=12)
 
 
 class MyTrainer(DefaultTrainer):
@@ -114,76 +187,10 @@ def setup(device="cpu", config_fname=None):
     return cfg
 
 
-def main_train(cfg, args):
-    trainer = MyTrainer(cfg)
-    trainer.resume_or_load(resume=False)
+# def main_train(cfg, args):
+#     trainer = MyTrainer(cfg)
+#     trainer.resume_or_load(resume=False)
 
-    # TODO (TP): ROI pooling turn off and train, ROI pooling on with increased size of bounding box
-    # TODO (TP): think of another way to map keypoint to heatmap in keypoint_rcnn_loss
-    trainer.train()
-
-
-def predict():
-    pass
-
-
-if __name__ == "__main__":
-    args = default_argument_parser()
-    Instances.__getitem__ = __newgetitem__
-
-    use_pickled = True
-
-    if use_pickled:
-
-        def load_dataset(name):
-            path = osp.join(get_pickled_dataset(), f"{name}.pkl")
-            assert osp.exists(path), f"no pickled file at {path}.pkl found"
-            with open(path, "rb") as f:
-                result = pickle.load(f)
-            logging.info(f"Dataset {name} loaded. Length of dataset: {len(result)}")
-            return result
-
-        DatasetCatalog.register("KGN_train_dataset", lambda: load_dataset("sim_train"))
-        DatasetCatalog.register("KGN_test_dataset", lambda: load_dataset("sim_test"))
-        DatasetCatalog.register(
-            "KGN_VAE_train_dataset", lambda: load_dataset("sim_train_vae")
-        )
-        DatasetCatalog.register(
-            "KGN_VAE_test_dataset", lambda: load_dataset("sim_test_vae")
-        )
-
-    else:
-        DatasetCatalog.register(
-            "KGN_train_dataset", lambda: dataset_function(NUM_TRAINING_DATA)
-        )
-        DatasetCatalog.register(
-            "KGN_test_dataset", lambda: dataset_function(NUM_TEST_DATA)
-        )
-        DatasetCatalog.register(
-            "KGN_VAE_train_dataset", lambda: dataset_function_vae(NUM_TRAINING_DATA)
-        )
-        DatasetCatalog.register(
-            "KGN_VAE_test_dataset", lambda: dataset_function_vae(NUM_TEST_DATA)
-        )
-
-    args = args.parse_args()
-    args.num_gpus = 1
-    if args.config_file:
-        cfg = setup(args.config_file)
-    else:
-        cfg = setup()
-
-    os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-    # wandb.init(sync_tensorboard=True)
-    wandb.tensorboard.patch(root_logdir=cfg.OUTPUT_DIR)
-    wandb.init(
-        name="KGN",
-        project="Original KGN",
-        settings=wandb.Settings(start_method="thread", console="off"),
-        sync_tensorboard=True,
-        mode="offline",
-    )
-
-    main_train(cfg, args)
-
-    wandb.finish()
+#     # TODO (TP): ROI pooling turn off and train, ROI pooling on with increased size of bounding box
+#     # TODO (TP): think of another way to map keypoint to heatmap in keypoint_rcnn_loss
+#     trainer.train()

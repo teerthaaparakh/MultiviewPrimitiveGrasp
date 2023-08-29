@@ -2,6 +2,14 @@ import numpy as np
 import sys
 import os, os.path as osp
 import typing as T
+import pickle
+from utils.path_util import get_pickled_data_dir, get_data_dir
+
+# from dataset.dataset_function import load_dataset
+import random
+import logging
+from glob import glob
+import numpy as np
 
 sys.path.append(os.environ["KGN_DIR"])
 from utils.util import get_area
@@ -41,12 +49,12 @@ def get_scene_data_item(scene_data, bboxes, rgb, depth, cam_extr, cam_intr, inde
         "obj_pose": obj_pose,
         "obj_dim": obj_dim,
         "obj_type": obj_type,
-        "ori_clss": processed_grasps_dict["orientation_bin"][valid],
-        "centers": processed_grasps_dict["center_2d"][valid],
-        "keypoints": processed_grasps_dict["offset_kpts"][valid],
+        "orientations": processed_grasps_dict["orientation_bin"][valid],
+        "center_kpts": processed_grasps_dict["center_2d"][valid],
+        "kpts": processed_grasps_dict["offset_kpts"][valid],
         "scales": processed_grasps_dict["scale"][valid],
-        "grasp_width": processed_grasps_dict["grasp_width"][valid],
-        "bbox": list(bboxes[index + 1]),
+        "grasp_widths": processed_grasps_dict["grasp_width"][valid],
+        "bbox": np.array(bboxes[index + 1]),
         "bbox_mode": BoxMode.XYXY_ABS,
     }
     return obj_dict
@@ -83,7 +91,12 @@ def get_scene_and_image_id(color_image_path):
     return scene_id, img_id
 
 
-def load_dataset(data_dir, num_samples=10) -> T.List[T.Dict]:
+def load_dataset(
+    data_dir,
+    num_samples=10,
+    scenes_to_skip: T.List[str] = [],
+    exclusively: T.Optional[T.List] = None,
+) -> T.List[T.Dict]:
     """
     Requires the data_dir to have the following structure:
     data_dir
@@ -114,6 +127,16 @@ def load_dataset(data_dir, num_samples=10) -> T.List[T.Dict]:
     for idx, color_image_path in enumerate(new_color_files_lst):
         print(f"Processing datapoint: {idx}")
         scene_id, img_id = get_scene_and_image_id(color_image_path)
+
+        if exclusively is not None:
+            if not (str(scene_id) in exclusively):
+                continue
+
+        if str(scene_id) in scenes_to_skip:
+            print(f"Scene {scene_id} is skipped.")
+            continue
+
+        print(f"Processing scene {scene_id}")
         scene_path = osp.join(data_dir, scene_id)
 
         json_path = os.path.join(scene_path, "scene_info.json")
@@ -163,7 +186,7 @@ def load_dataset(data_dir, num_samples=10) -> T.List[T.Dict]:
                     index=j,
                 )
 
-                num_grasps.append(len(obj_dict["centers"]))
+                num_grasps.append(len(obj_dict["center_kpts"]))
                 annotations.append(obj_dict)
 
         current_dict["annotations"] = annotations
@@ -171,3 +194,47 @@ def load_dataset(data_dir, num_samples=10) -> T.List[T.Dict]:
         list_dict.append(current_dict)
 
     return list_dict
+
+
+def load_dataset_wrapper(t="train"):
+    name = "VAE"
+    path = osp.join(get_pickled_data_dir(), f"{name}_{t}.pkl")
+    if osp.exists(path):
+        with open(path, "rb") as f:
+            result = pickle.load(f)
+    else:
+        logging.warn(f"Dataset {name} pickle not found. Generating ...")
+
+        initial_data_dir = get_data_dir()
+        _scene_dirs = glob(initial_data_dir + "/color_images")
+        scene_dirs = [s.split(os.sep)[-2] for s in _scene_dirs]
+
+        print(f"Example scenes found (last 5): {scene_dirs[-5:]}")
+        # randomly choose 1% percent of the total scenes
+        k = max(1, int(len(scene_dirs) * 0.01))
+        chosen_for_validation = random.sample(scene_dirs, k=k)
+
+        train_dataset_lst = load_dataset(
+            get_data_dir(), scenes_to_skip=chosen_for_validation, num_samples=9000000
+        )
+
+        val_dataset_lst = load_dataset(
+            get_data_dir(), exclusively=chosen_for_validation, num_samples=100000
+        )
+
+        train_path = osp.join(get_pickled_data_dir(), f"{name}_train.pkl")
+        val_path = osp.join(get_pickled_data_dir(), f"{name}_val.pkl")
+
+        with open(train_path, "wb") as f:
+            pickle.dump(train_dataset_lst, f)
+
+        with open(val_path, "wb") as f:
+            pickle.dump(val_dataset_lst, f)
+
+        if t == "train":
+            result = train_dataset_lst
+        else:
+            result = val_dataset_lst
+
+    logging.info(f"Dataset {name}_{t} loaded. Length of dataset: {len(result)}")
+    return result

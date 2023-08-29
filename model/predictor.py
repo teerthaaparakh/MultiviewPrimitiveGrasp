@@ -6,9 +6,8 @@ import sys, os, glob, os.path as osp
 sys.path.append(os.getenv("KGN_DIR"))
 from utils.path_util import get_dataset_dir, get_test_dataset_dir
 import cv2
-from model.trainer import setup
+from model.trainer_utils import setup
 from matplotlib import pyplot as plt
-from matplotlib.patches import Rectangle
 from detectron2.checkpoint import DetectionCheckpointer
 
 

@@ -263,7 +263,7 @@ def visualize_datapoint(datapoint, grasp_indices=None):
 
         # img_with_obj_bb = copy(img_with_obj_bb)
         # drawing any 5 random chosen grasps for the object
-        num_grasps = len(obj_dict["centers"])
+        num_grasps = len(obj_dict["center_kpts"])
         print(f"    object id {idx}, num_grasps {num_grasps}")
 
         if num_grasps == 0:
@@ -278,10 +278,10 @@ def visualize_datapoint(datapoint, grasp_indices=None):
 
         for i in indices:
             grasp_dict = {
-                "offset_kpts": obj_dict["keypoints"][i],
-                "center_2d": obj_dict["centers"][i],
+                "offset_kpts": obj_dict["kpts"][i],
+                "center_2d": obj_dict["center_kpts"][i],
                 "scale": obj_dict["scales"][i],
-                "orientation_bin": obj_dict["ori_clss"][i],
+                "orientation_bin": obj_dict["orientations"][i],
             }
 
             # print("grasp dict", grasp_dict)
@@ -312,7 +312,7 @@ def visualize_mapper_dict(new_dict, name):
     for idx in range(len(bboxes)):
         grasp_dict = {
             "offset_kpts": gt_keypoints[idx].numpy(),
-            "center_2d": gt_centerpoints[idx].numpy()[0],
+            "center_2d": gt_centerpoints[idx].numpy(),
             "scale": gt_scales[idx].item(),
             "orientation_bin": gt_orientations[idx].item(),
         }
