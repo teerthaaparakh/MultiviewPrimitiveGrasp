@@ -47,8 +47,9 @@ def get_eval_output_dir():
 
 def get_pretrained_resnet_path():
     return osp.join(
-        get_src_dir(), "model/pretrained_resnet/model_0000637.pth"
-    )  # model/pretrained_resnet/R-50.pkl
+        get_src_dir(), 
+        # "model/pretrained_resnet/model_0000637.pth"
+      "model/pretrained_resnet/R-50.pkl")
 
 
 def get_sam_model_path():

@@ -12,7 +12,9 @@ from model.our_modeling.instances import __newgetitem__
 from dataset.dataset_function import load_dataset_wrapper
 from model.trainer_utils import setup, MyTrainer
 
-DatasetCatalog.register("KGN_VAE_train_dataset", lambda: load_dataset_wrapper(t="train"))
+DatasetCatalog.register(
+    "KGN_VAE_train_dataset", lambda: load_dataset_wrapper(t="train")
+)
 
 DatasetCatalog.register("KGN_VAE_val_dataset", lambda: load_dataset_wrapper(t="val"))
 
@@ -41,7 +43,9 @@ if __name__ == "__main__":
     trainer = MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
 
     # TODO (TP): ROI pooling turn off and train,
     #            ROI pooling on with increased size of bounding box
