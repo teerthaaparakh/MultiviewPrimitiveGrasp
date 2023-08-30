@@ -19,7 +19,7 @@ setup_logger()
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultTrainer
 from detectron2.data import build_detection_train_loader, build_detection_test_loader
-from dataset.dataset_mapper import mapper
+from dataset.dataset_mapper_v2 import mapper
 from utils.other_configs import *
 import wandb
 from detectron2.engine.hooks import HookBase
@@ -110,17 +110,36 @@ class LossEvalHook(HookBase):
 
 
 class MyTrainer(DefaultTrainer):
+
+    def build_hooks(self):
+        hooks = super().build_hooks()
+        hooks.insert(-1,LossEvalHook(
+            self.cfg.TEST.EVAL_PERIOD,
+            self.model,
+            build_detection_test_loader(
+                self.cfg,
+                self.cfg.DATASETS.TEST[0],
+                lambda ddict: mapper(ddict, draw=False, is_test=True) 
+            )
+        ))
+        # swap the order of PeriodicWriter and ValidationLoss
+        # code hangs with no GPUs > 1 if this line is removed
+        hooks = hooks[:-2] + hooks[-2:][::-1]
+        return hooks
+
     @classmethod
     def build_test_loader(cls, cfg, dataset_name):
-        return build_detection_test_loader(cfg, dataset_name, mapper=mapper)
+        m = lambda ddict: mapper(ddict, draw=False, is_test=True) 
+        return build_detection_test_loader(cfg, dataset_name, mapper=m)
 
     @classmethod
     def build_train_loader(cls, cfg):
-        return build_detection_train_loader(cfg, mapper=mapper)
+        m = lambda ddict: mapper(ddict, draw=False, is_test=False) 
+        return build_detection_train_loader(cfg, mapper=m)
 
-    @classmethod
-    def build_evaluator(cls, cfg, dataset_name):
-        pass
+    # @classmethod
+    # def build_evaluator(cls, cfg, dataset_name):
+    #     pass
 
 
 def setup(device="cpu", config_fname=None):
@@ -154,18 +173,18 @@ def setup(device="cpu", config_fname=None):
         "MyKeypointHead"  # KRCNNConvDeconvUpsampleHead default
     )
     cfg.MODEL.ROI_KEYPOINT_HEAD.USE_VAE = True
-    if cfg.MODEL.ROI_KEYPOINT_HEAD.USE_VAE:
-        cfg.MODEL.ROI_KEYPOINT_HEAD.VAE = CN()
-        cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.HIDDEN_DIMS = [32, 64, 128, 256, 256]
-        cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.LATENT_DIM = 100
-        cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.NUM_OUTPUTS_VAE = (
-            10  # 2 center points, 8 keypoint offsets
-        )
-        cfg.DATASETS.TRAIN = ("KGN_VAE_train_dataset",)
-        cfg.DATASETS.TEST = ("KGN_VAE_test_dataset",)
-    else:
-        cfg.DATASETS.TRAIN = ("KGN_train_dataset",)
-        cfg.DATASETS.TEST = ("KGN_test_dataset",)
+    # if cfg.MODEL.ROI_KEYPOINT_HEAD.USE_VAE:
+    cfg.MODEL.ROI_KEYPOINT_HEAD.VAE = CN()
+    cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.HIDDEN_DIMS = [32, 64, 128, 256, 256]
+    cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.LATENT_DIM = 100
+    cfg.MODEL.ROI_KEYPOINT_HEAD.VAE.NUM_OUTPUTS_VAE = (
+        10  # 2 center points, 8 keypoint offsets
+    )
+    cfg.DATASETS.TRAIN = ("KGN_VAE_train_dataset",)
+    cfg.DATASETS.TEST = ("KGN_VAE_test_dataset",)
+    # else:
+    #     cfg.DATASETS.TRAIN = ("KGN_train_dataset",)
+    #     cfg.DATASETS.TEST = ("KGN_test_dataset",)
     cfg.MODEL.ROI_KEYPOINT_HEAD.NORMALIZE_LOSS_BY_VISIBLE_KEYPOINTS = False
     cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS = None
     cfg.MODEL.ROI_KEYPOINT_HEAD.LOSS_WEIGHT_TUPLE = (HM_WT, WD_WT)
@@ -186,11 +205,3 @@ def setup(device="cpu", config_fname=None):
     cfg.freeze()
     return cfg
 
-
-# def main_train(cfg, args):
-#     trainer = MyTrainer(cfg)
-#     trainer.resume_or_load(resume=False)
-
-#     # TODO (TP): ROI pooling turn off and train, ROI pooling on with increased size of bounding box
-#     # TODO (TP): think of another way to map keypoint to heatmap in keypoint_rcnn_loss
-#     trainer.train()

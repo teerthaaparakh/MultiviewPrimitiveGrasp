@@ -123,9 +123,9 @@ def load_dataset(
         glob(os.path.join(data_dir, "*/color_images/*.png"), recursive=True)
     )
     k = min(num_samples, len(color_files_lst))
-    new_color_files_lst = random.sample(color_files_lst, k=k)
+    new_color_files_lst = sorted(random.sample(color_files_lst, k=k))
     for idx, color_image_path in enumerate(new_color_files_lst):
-        print(f"Processing datapoint: {idx}")
+        # print(f"Processing datapoint: {idx}")
         scene_id, img_id = get_scene_and_image_id(color_image_path)
 
         if exclusively is not None:
@@ -136,7 +136,7 @@ def load_dataset(
             print(f"Scene {scene_id} is skipped.")
             continue
 
-        print(f"Processing scene {scene_id}")
+        print(f"Processing scene and image: {scene_id}, {img_id}")
         scene_path = osp.join(data_dir, scene_id)
 
         json_path = os.path.join(scene_path, "scene_info.json")
@@ -198,6 +198,7 @@ def load_dataset(
 
 def load_dataset_wrapper(t="train"):
     name = "VAE"
+
     path = osp.join(get_pickled_data_dir(), f"{name}_{t}.pkl")
     if osp.exists(path):
         with open(path, "rb") as f:
@@ -206,7 +207,7 @@ def load_dataset_wrapper(t="train"):
         logging.warn(f"Dataset {name} pickle not found. Generating ...")
 
         initial_data_dir = get_data_dir()
-        _scene_dirs = glob(initial_data_dir + "/color_images")
+        _scene_dirs = glob(initial_data_dir + "/*/color_images")
         scene_dirs = [s.split(os.sep)[-2] for s in _scene_dirs]
 
         print(f"Example scenes found (last 5): {scene_dirs[-5:]}")
@@ -222,6 +223,7 @@ def load_dataset_wrapper(t="train"):
             get_data_dir(), exclusively=chosen_for_validation, num_samples=100000
         )
 
+        os.makedirs(get_pickled_data_dir())
         train_path = osp.join(get_pickled_data_dir(), f"{name}_train.pkl")
         val_path = osp.join(get_pickled_data_dir(), f"{name}_val.pkl")
 

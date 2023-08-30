@@ -11,7 +11,7 @@ from detectron2.structures import Instances
 from detectron2.modeling import ROI_KEYPOINT_HEAD_REGISTRY, BaseKeypointRCNNHead
 from IPython import embed
 
-from our_modeling.new_loss import kgn_loss, keypoint_rcnn_inference
+from model.our_modeling.new_loss import kgn_loss, keypoint_rcnn_inference
 from torch.nn import functional as F
 
 from model.our_modeling.encode_decode import Encoder, Decoder

@@ -8,3 +8,7 @@ from .modeling.backbone.dlafpn import build_dla_fpn3_backbone
 from .modeling.backbone.bifpn import build_resnet_bifpn_backbone
 from .modeling.backbone.bifpn_fcos import build_fcos_resnet_bifpn_backbone
 from .modeling.backbone.res2net import build_p67_res2net_fpn_backbone
+
+from .our_modeling.our_meta_arch import MyGeneralizedRCNN
+from .our_modeling.roi_head import MyROIHeads
+from .our_modeling.keypoint_head import MyKeypointHead
