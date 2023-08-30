@@ -13,6 +13,7 @@ from detectron2.utils.logger import setup_logger
 from detectron2.utils.logger import log_every_n_seconds
 from detectron2.config import CfgNode as CN
 import detectron2.utils.comm as comm
+from detectron2.data import DatasetCatalog
 
 setup_logger()
 
@@ -135,7 +136,9 @@ class MyTrainer(DefaultTrainer):
     @classmethod
     def build_train_loader(cls, cfg):
         m = lambda ddict: mapper(ddict, draw=False, is_test=False) 
-        return build_detection_train_loader(cfg, mapper=m)
+        
+        return build_detection_train_loader(cfg, mapper=m, 
+                                            dataset=DatasetCatalog.get(cfg.DATASETS.TRAIN[0]))
 
     # @classmethod
     # def build_evaluator(cls, cfg, dataset_name):
@@ -181,7 +184,7 @@ def setup(device="cpu", config_fname=None):
         10  # 2 center points, 8 keypoint offsets
     )
     cfg.DATASETS.TRAIN = ("KGN_VAE_train_dataset",)
-    cfg.DATASETS.TEST = ("KGN_VAE_test_dataset",)
+    cfg.DATASETS.TEST = ("KGN_VAE_val_dataset",)
     # else:
     #     cfg.DATASETS.TRAIN = ("KGN_train_dataset",)
     #     cfg.DATASETS.TEST = ("KGN_test_dataset",)
