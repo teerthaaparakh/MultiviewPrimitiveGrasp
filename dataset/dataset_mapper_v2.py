@@ -105,9 +105,8 @@ def get_sample_grasp_props_dict(all_grasps_dict):
             new_dict["grasp_widths"].append(
                 all_grasps_dict["grasp_widths"][i][sampled_idx]
             )
-
-    # new_dict["category_ids"] = torch.tensor(all_grasps_dict["category_ids"], dtype=torch.long)
-    new_dict["bboxes"] = all_grasps_dict["bboxes"]
+            new_dict["category_ids"].append(all_grasps_dict["category_ids"][i])
+            new_dict["bboxes"].append(all_grasps_dict["bboxes"].tensor[i])
 
     # converting to torch arrays
     new_dict["kpts"] = torch.stack(new_dict["kpts"])
@@ -115,6 +114,8 @@ def get_sample_grasp_props_dict(all_grasps_dict):
     new_dict["orientations"] = torch.tensor(new_dict["orientations"])
     new_dict["scales"] = torch.tensor(new_dict["scales"])
     new_dict["grasp_widths"] = torch.tensor(new_dict["grasp_widths"])
+    new_dict["category_ids"] = torch.tensor(new_dict["category_ids"], dtype=torch.long)
+    new_dict["bboxes"] = Boxes(torch.stack(new_dict["bboxes"]))
 
     return new_dict
 
@@ -154,6 +155,9 @@ def apply_augmentations(image: np.ndarray, depth: np.ndarray, all_object_grasp_d
         height=h,
         width=w,
     )
+    if len(transformed_boxes) != len(transformed_kpts):
+        print(transformed_boxes.shape, transformed_kpts.shape, all_object_grasp_dict["kpts"].shape)
+        assert False
 
     transformed_ori = get_orientation_class(transformed_kpts.numpy())
     transformed_ori = torch.from_numpy(transformed_ori)
@@ -167,8 +171,9 @@ def apply_augmentations(image: np.ndarray, depth: np.ndarray, all_object_grasp_d
         "scales": all_object_grasp_dict["scales"],
         "grasp_widths": all_object_grasp_dict["grasp_widths"],
         "bboxes": Boxes(torch.from_numpy(transformed_boxes)),
-        # "category_ids": all_object_grasp_dict["category_ids"]
+        "category_ids": all_object_grasp_dict["category_ids"]
     }
+
 
     return transformed_image, transformed_depth, augmented_grasps_dict
 
@@ -249,21 +254,20 @@ def mapper(original_dataset_dict, draw=False, is_test=False):
         transformed_image, transformed_depth, final_dict = apply_augmentations(
             image, depth, all_object_grasp_dict=train_dict
         )
-        print("inside train", transformed_depth.shape, transformed_image.shape)
 
         image_input = np.concatenate(
             (transformed_image / 255.0, transformed_depth[None , ...]), axis=0
         )
 
     new_dict = {
-        "input": torch.from_numpy(image_input).float(),
+        "image": torch.from_numpy(image_input).float(),
         "rgb": transformed_image,
         "depth": transformed_depth,
         "height": h,
         "width": w,
         "instances": Instances(
             (h, w),
-            gt_classes=mapper_dict["category_ids"],
+            gt_classes=final_dict["category_ids"],
             gt_boxes=final_dict["bboxes"],
             gt_keypoints=final_dict["kpts"],
             gt_centerpoints=final_dict["center_kpts"],

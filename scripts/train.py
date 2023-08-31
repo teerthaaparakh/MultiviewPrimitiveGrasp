@@ -43,10 +43,6 @@ if __name__ == "__main__":
     trainer = MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
 
-    import pdb
-
-    pdb.set_trace()
-
     # TODO (TP): ROI pooling turn off and train,
     #            ROI pooling on with increased size of bounding box
     # TODO (TP): think of another way to map keypoint to heatmap
