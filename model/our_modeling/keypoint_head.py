@@ -15,7 +15,7 @@ from model.our_modeling.new_loss import kgn_loss, keypoint_rcnn_inference
 from torch.nn import functional as F
 
 from model.our_modeling.encode_decode import Encoder, Decoder
-from utils.util import get_grasp_features, save_results
+from utils.util import get_grasp_features_v2, save_results
 
 from utils.post_process import post_process
 
@@ -149,7 +149,6 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         Returns:
             A dict of losses if in training. The predicted "instances" if in inference.
         """
-        import pdb; pdb.set_trace()
         if not self.use_vae:
             x_output = self.layers(x_input)
             if self.training:
@@ -171,17 +170,18 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
                 return instances
 
         else:
-            # import pdb; pdb.set_trace()
 
             x_input = self.avg_pool(x_input)
             x_input = x_input.flatten(start_dim=1)
 
             if self.training:
-                grasp_features = get_grasp_features(
-                    instances
-                )  # kpts offset + centerpoints
+                grasp_features = get_grasp_features_v2(instances)
+                # grasp_features = get_grasp_features(
+                #     instances
+                # )  # kpts offset + centerpoints
                 x_concat = torch.cat((x_input, grasp_features), axis=1)
 
+                import pdb; pdb.set_trace()
                 mu, log_var = self.encoder(x_concat)  # batch size x num_latents
                 z = self.reparameterize(mu, log_var)  # batch size x num_latents
 

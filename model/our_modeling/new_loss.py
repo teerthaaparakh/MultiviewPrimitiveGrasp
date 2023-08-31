@@ -311,7 +311,6 @@ if __name__ == "__main__":
         hmap__ = torch.rand(2, height, width)
         hmap.append(hmap__)
         num_elements.append(2 * height * width)
-    import pdb
 
     # pdb.set_trace()
     ret = top_centers(hmap, num_elements)

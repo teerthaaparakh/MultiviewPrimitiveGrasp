@@ -48,6 +48,33 @@ def get_orientation_class(kpts_2d, ori_range=[0, np.pi]) -> np.ndarray:
     return bin_index  # (num_grasps,)
 
 
+
+def get_grasp_features_v2(instances):
+    ret = []
+    for inst in instances:
+        # get the centers points location relative to bounding box
+        # TODO (MP): should not this be proposal boxes????
+        transformed_centerpoints = inst.gt_centerpoints[:, :1] - inst.gt_boxes.tensor[:, :1]
+
+        # scale centers and keypoints with heights and widths
+        # same comment as above (proposal boxes should be used or not?)
+        box_dimensions = (
+            inst.gt_boxes.tensor[:, 2:4]
+            - inst.gt_boxes.tensor[:, 0:1]
+        )
+        # widths, heights = box_dimensions[:, 0], box_dimensions[:, 1]
+        scaled_transformed_centerpoints = transformed_centerpoints / box_dimensions
+        concat_features = torch.cat(
+            (
+                inst.gt_keypoints[:, :, :2].flatten(start_dim=1),
+                scaled_transformed_centerpoints,
+            ),
+            axis=1,
+        )
+        ret.append(concat_features)
+    return torch.cat(ret, axis=0)
+
+
 # def get_all_objects_ori_class(kpts: T.List[torch.Tensor]):
 #     ret = []
 #     for obj_kpts in kpts:
@@ -57,6 +84,7 @@ def get_orientation_class(kpts_2d, ori_range=[0, np.pi]) -> np.ndarray:
 
 def get_grasp_features(instances):
     ret = []
+
     for inst in range(len(instances)):
         # get the centers points location relative to bounding box
         instances[inst].gt_centerpoints.tensor[:, 0][:, 0] = (

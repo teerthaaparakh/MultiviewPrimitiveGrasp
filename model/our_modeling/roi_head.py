@@ -264,5 +264,4 @@ class MyROIHeads(ROIHeads):
         else:
             features = {f: features[f] for f in self.keypoint_in_features}
 
-        import pdb; pdb.set_trace()
         return self.keypoint_head(features, instances)
