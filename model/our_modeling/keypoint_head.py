@@ -149,7 +149,7 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         Returns:
             A dict of losses if in training. The predicted "instances" if in inference.
         """
-
+        import pdb; pdb.set_trace()
         if not self.use_vae:
             x_output = self.layers(x_input)
             if self.training:
