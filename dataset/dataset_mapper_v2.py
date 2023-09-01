@@ -235,7 +235,7 @@ def mapper(original_dataset_dict, draw=False, is_test=False):
 
     mapper_dict["bboxes"] = Boxes(torch.stack(mapper_dict["bboxes"]))
 
-    if is_test:
+    if is_test: 
         image_input = np.concatenate((image / 255.0, depth), axis=2).transpose(2, 0, 1)
         final_dict = copy.deepcopy(mapper_dict)
         transformed_image = image.transpose(2, 0, 1)

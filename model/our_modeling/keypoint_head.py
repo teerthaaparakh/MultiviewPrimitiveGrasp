@@ -52,8 +52,10 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         in_channels = input_shape.channels
 
         self.eval_save_results = eval_save_results
-
         self.eval_output_dir = eval_output_dir
+        self.inference_latent_sampler = torch.distributions.normal.Normal(
+            torch.zeros(num_outputs_vae, dtype=torch.float32),
+            torch.ones(num_outputs_vae, dtype=torch.float32))
 
         if self.use_vae:
             self.avg_pool = nn.AvgPool2d((input_shape.height, input_shape.width))
@@ -210,7 +212,7 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
                 )
                 return loss_dict
             else:
-                self.grasp_sampler_inference(x_input_flattened, instances)
+                self.grasp_sampler_inference(input_image_features=x_input_flattened, instances=instances)
                 return instances
 
     def layers(self, x):
@@ -250,10 +252,12 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         # loss = recons_loss + kld_loss
         return {"reconstruction_loss": recons_loss, "KLDivergence_loss": kld_loss}
 
-    def grasp_sampler_inference(self, x_input, instances):
-        num_samples = len(x_input)
-        z = torch.randn(num_samples, self.latent_dim)
-        x_concat = torch.cat((x_input, z), axis=1)
+    def grasp_sampler_inference(self, input_image_features, instances):
+        # import pdb; pdb.set_trace()
+        num_object_instances = len(input_image_features)
+        # z = torch.randn(num_object_instances, self.latent_dim)
+        z = self.inference_latent_sampler.sample((num_object_instances,))
+        x_concat = torch.cat((input_image_features, z), axis=1)
         output = self.decoder(x_concat)
         post_process(output, instances)
 

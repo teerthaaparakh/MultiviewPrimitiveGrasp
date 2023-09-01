@@ -48,45 +48,21 @@ class LossEvalHook(HookBase):
         print("Eval period:", self._period)
 
     def _do_loss_eval(self):
-        start_time = time.perf_counter()
-        total_compute_time = 0
         losses = []
 
         k = min(len(self.data_pts), 100)
         sampled_pts = random.sample(self.data_pts, k=k)
 
-        total = len(sampled_pts)
-        num_warmup = min(5, total - 1)
-
-        for idx, inputs in enumerate(sampled_pts):
-            if idx == num_warmup:
-                start_time = time.perf_counter()
-                total_compute_time = 0
-            start_compute_time = time.perf_counter()
+        for inputs in sampled_pts:
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
-            total_compute_time += time.perf_counter() - start_compute_time
-            iters_after_start = idx + 1 - num_warmup * int(idx >= num_warmup)
-            seconds_per_img = total_compute_time / iters_after_start
-            if idx >= num_warmup * 2 or seconds_per_img > 5:
-                total_seconds_per_img = (
-                    time.perf_counter() - start_time
-                ) / iters_after_start
-                eta = datetime.timedelta(
-                    seconds=int(total_seconds_per_img * (total - idx - 1))
-                )
-                log_every_n_seconds(
-                    logging.INFO,
-                    "Loss on Validation  done {}/{}. {:.4f} s / img. ETA={}".format(
-                        idx + 1, total, seconds_per_img, str(eta)
-                    ),
-                    n=5,
-                )
             loss_batch = self._get_loss(inputs)
             losses.append(loss_batch)
         mean_loss = np.mean(losses)
+        # logging.info(f"Validation loss: {mean_loss}")
+        print(f"Validation loss: {mean_loss}")
         self.trainer.storage.put_scalar("validation_loss", mean_loss)
-        wandb.log({"validation_loss": mean_loss})
+        # wandb.log({"validation_loss": mean_loss})
         comm.synchronize()
 
         return losses
@@ -143,9 +119,9 @@ class MyTrainer(DefaultTrainer):
             cfg, mapper=m, dataset=DatasetCatalog.get(cfg.DATASETS.TRAIN[0])
         )
 
-    # @classmethod
-    # def build_evaluator(cls, cfg, dataset_name):
-    #     pass
+    @classmethod
+    def build_evaluator(cls, cfg, dataset_name):
+        pass
 
 
 def setup(device="cpu", config_fname=None):
@@ -199,7 +175,7 @@ def setup(device="cpu", config_fname=None):
     cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_OUTPUTS = (
         NUM_BINS + NUM_BINS + NUM_BINS + NUM_BINS * 2 * 4 + 2
     )  # hm + width + scale + keypoint offset + center reg
-    cfg.TEST.EVAL_PERIOD = 5000000
+    cfg.TEST.EVAL_PERIOD = 1 # 1000000
     cfg.TEST.EVAL_SAVE_RESULTS = True
     if cfg.TEST.EVAL_SAVE_RESULTS:
         cfg.TEST.EVAL_OUTPUT_DIR = get_eval_output_dir()

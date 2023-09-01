@@ -52,16 +52,14 @@ def get_grasp_features_v2(instances, offsets=True):
     ret = []
     for inst in instances:
         # get the centers points location relative to bounding box
-        # TODO (MP): should not this be proposal boxes????
         transformed_centerpoints = (
-            inst.gt_centerpoints[:, :1] - inst.gt_boxes.tensor[:, :1]
+            inst.gt_centerpoints[:, :2] - inst.proposal_boxes.tensor[:, :2]
         )
 
         # scale centers and keypoints with heights and widths
-        # same comment as above (proposal boxes should be used or not?)
         # Boxes: min_col, min_row, max_col, max_row
 
-        box_dimensions = inst.gt_boxes.tensor[:, 2:4] - inst.gt_boxes.tensor[:, 0:2]
+        box_dimensions = inst.proposal_boxes.tensor[:, 2:4] - inst.proposal_boxes.tensor[:, 0:2]
         # widths, heights = box_dimensions[:, 0], box_dimensions[:, 1]
         scaled_transformed_centerpoints = transformed_centerpoints / box_dimensions
         if offsets:

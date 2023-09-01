@@ -1,9 +1,9 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 import torch
 from detectron2.utils.events import get_event_storage
 from detectron2.modeling import GeneralizedRCNN
 from detectron2.modeling import META_ARCH_REGISTRY
-
+from detectron2.structures.instances import Instances
 
 @META_ARCH_REGISTRY.register()
 class MyGeneralizedRCNN(GeneralizedRCNN):
@@ -53,12 +53,62 @@ class MyGeneralizedRCNN(GeneralizedRCNN):
 
         # import pdb; pdb.set_trace()
         _, detector_losses = self.roi_heads(images, features, proposals, gt_instances)
-        if self.vis_period > 0:
-            storage = get_event_storage()
-            if storage.iter % self.vis_period == 0:
-                self.visualize_training(batched_inputs, proposals)
+        # if self.vis_period > 0:
+        #     storage = get_event_storage()
+        #     if storage.iter % self.vis_period == 0:
+        #         self.visualize_training(batched_inputs, proposals)
 
         losses = {}
         losses.update(detector_losses)
         losses.update(proposal_losses)
         return losses
+
+    # adding inference for training points - likely not needed   
+    # def inference(
+    #     self,
+    #     batched_inputs: List[Dict[str, torch.Tensor]],
+    #     detected_instances: Optional[List[Instances]] = None,
+    #     do_postprocess: bool = True,
+    # ):
+    #     """
+    #     Run inference on the given inputs.
+
+    #     Args:
+    #         batched_inputs (list[dict]): same as in :meth:`forward`
+    #         detected_instances (None or list[Instances]): if not None, it
+    #             contains an `Instances` object per image. The `Instances`
+    #             object contains "pred_boxes" and "pred_classes" which are
+    #             known boxes in the image.
+    #             The inference will then skip the detection of bounding boxes,
+    #             and only predict other per-ROI outputs.
+    #         do_postprocess (bool): whether to apply post-processing on the outputs.
+
+    #     Returns:
+    #         When do_postprocess=True, same as in :meth:`forward`.
+    #         Otherwise, a list[Instances] containing raw network outputs.
+    #     """
+    #     assert not self.training
+
+    #     images = self.preprocess_image(batched_inputs)
+    #     features = self.backbone(images.tensor)
+
+    #     # # loss for test data is not useful, I think
+    #     # if "instances" in batched_inputs[0]:
+    #         # print("Ground Truth data for test set found. Computing loss")
+
+    #     if detected_instances is None:
+    #         if self.proposal_generator is not None:
+    #             proposals, _ = self.proposal_generator(images, features, None)
+    #         else:
+    #             assert "proposals" in batched_inputs[0]
+    #             proposals = [x["proposals"].to(self.device) for x in batched_inputs]
+
+    #         results, _ = self.roi_heads(images, features, proposals, None)
+    #     else:
+    #         detected_instances = [x.to(self.device) for x in detected_instances]
+    #         results = self.roi_heads.forward_with_given_boxes(features, detected_instances)
+
+    #     if do_postprocess:
+    #         assert not torch.jit.is_scripting(), "Scripting is not supported for postprocess."
+    #         return GeneralizedRCNN._postprocess(results, batched_inputs, images.image_sizes)
+    #     return results
