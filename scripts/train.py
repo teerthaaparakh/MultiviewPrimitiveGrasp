@@ -11,6 +11,13 @@ from detectron2.engine import default_argument_parser
 from model.our_modeling.instances import __newgetitem__
 from dataset.dataset_function import load_dataset_wrapper
 from model.trainer_utils import setup, MyTrainer
+import torch
+import numpy as np
+import random
+
+torch.manual_seed(0)
+np.random.seed(0)
+random.seed(0)
 
 DatasetCatalog.register(
     "KGN_VAE_train_dataset", lambda: load_dataset_wrapper(t="train")
@@ -30,15 +37,16 @@ if __name__ == "__main__":
         cfg = setup()
 
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-    # wandb.init(sync_tensorboard=True)
-    wandb.tensorboard.patch(root_logdir=cfg.OUTPUT_DIR)
-    wandb.init(
-        name="KGN",
-        project="Original KGN",
-        settings=wandb.Settings(start_method="thread", console="off"),
-        sync_tensorboard=True,
-        mode="offline",
-    )
+
+    # # uncomment the following lines for running with wandb logging
+    # wandb.tensorboard.patch(root_logdir=cfg.OUTPUT_DIR)
+    # wandb.init(
+    #     name="KGN",
+    #     project="Original KGN",
+    #     settings=wandb.Settings(start_method="thread", console="off"),
+    #     sync_tensorboard=True,
+    #     mode="offline",
+    # )
 
     trainer = MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
@@ -49,4 +57,4 @@ if __name__ == "__main__":
     #            in keypoint_rcnn_loss
     trainer.train()
 
-    wandb.finish()
+    # wandb.finish()

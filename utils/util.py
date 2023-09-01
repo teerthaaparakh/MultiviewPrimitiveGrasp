@@ -49,7 +49,7 @@ def get_orientation_class(kpts_2d, ori_range=[0, np.pi]) -> np.ndarray:
 
 
 
-def get_grasp_features_v2(instances):
+def get_grasp_features_v2(instances, offsets=True):
     ret = []
     for inst in instances:
         # get the centers points location relative to bounding box
@@ -63,16 +63,20 @@ def get_grasp_features_v2(instances):
             - inst.gt_boxes.tensor[:, 0:1]
         )
         # widths, heights = box_dimensions[:, 0], box_dimensions[:, 1]
+        import pdb; pdb.set_trace()
         scaled_transformed_centerpoints = transformed_centerpoints / box_dimensions
-        concat_features = torch.cat(
-            (
-                inst.gt_keypoints[:, :, :2].flatten(start_dim=1),
-                scaled_transformed_centerpoints,
-            ),
-            axis=1,
-        )
+        if offsets:
+            concat_features = torch.cat(
+                (
+                    inst.gt_keypoints[:, :, :2].flatten(start_dim=1),
+                    scaled_transformed_centerpoints,
+                ),
+                axis=1,
+            )
+        else:
+            concat_features = scaled_transformed_centerpoints
         ret.append(concat_features)
-    return torch.cat(ret, axis=0)
+    return torch.cat(ret, axis=0).float()
 
 
 # def get_all_objects_ori_class(kpts: T.List[torch.Tensor]):

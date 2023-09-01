@@ -165,11 +165,11 @@ def apply_augmentations(image: np.ndarray, depth: np.ndarray, all_object_grasp_d
     # TODO Check for float depths
     transformed_depth = transform.apply_image(depth[:, :, 0])
     augmented_grasps_dict = {
-        "kpts": transformed_kpts,
-        "center_kpts": transformed_center_kpts,
-        "orientations": transformed_ori,
-        "scales": all_object_grasp_dict["scales"],
-        "grasp_widths": all_object_grasp_dict["grasp_widths"],
+        "kpts": transformed_kpts.float(),
+        "center_kpts": transformed_center_kpts.float(),
+        "orientations": transformed_ori.float(),
+        "scales": all_object_grasp_dict["scales"].float(),
+        "grasp_widths": all_object_grasp_dict["grasp_widths"].float(),
         "bboxes": Boxes(torch.from_numpy(transformed_boxes)),
         "category_ids": all_object_grasp_dict["category_ids"]
     }

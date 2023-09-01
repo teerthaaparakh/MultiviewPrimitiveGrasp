@@ -27,8 +27,9 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, hidden_dims, in_dims, num_outputs):
+    def __init__(self, hidden_dims, in_dims, num_outputs, offsets=True):
         super().__init__()
+        self.offsets = offsets
         self.hidden_dims = hidden_dims
         self.in_dims = in_dims
         self.num_outputs = num_outputs
@@ -50,8 +51,13 @@ class Decoder(nn.Module):
         )
 
     def forward(self, z):
-        z = self.decoder_input(z)
-        result = self.decoder(z)
+        # import pdb; pdb.set_trace()
+        backbone_features = self.decoder_input(z)
+        result = self.decoder(backbone_features)
         result_cp = self.final_layer_centerpoint(result)
+
+        if not self.offsets:
+            return result_cp
+        
         result_offset = self.final_layer_offset(result)
         return result_offset, result_cp
