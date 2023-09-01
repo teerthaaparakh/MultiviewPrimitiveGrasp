@@ -64,18 +64,17 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
                 in_channels + grasp_input_dim, hidden_dims, latent_dim
             )
             self.grasp_encoder = nn.Sequential(
-                nn.Linear(10, 128), # 10: 8 for kpts and 2 for center points
+                nn.Linear(10, 128),  # 10: 8 for kpts and 2 for center points
                 # nn.Linear(2, 128), # assuming only training with centerpoints
                 nn.ReLU(),
                 nn.Linear(128, 128),
                 nn.ReLU(),
                 nn.Linear(128, 256),
                 nn.ReLU(),
-                nn.Linear(256, grasp_input_dim)
+                nn.Linear(256, grasp_input_dim),
             )
             self.decoder = Decoder(
-                hidden_dims, latent_dim + in_channels, num_outputs_vae,
-                offsets=True
+                hidden_dims, latent_dim + in_channels, num_outputs_vae, offsets=True
             )
             self.latent_dim = latent_dim
 
@@ -185,7 +184,6 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
                 return instances
 
         else:
-
             x_input = self.avg_pool(x_input)
             x_input_flattened = x_input.flatten(start_dim=1)
 
@@ -195,15 +193,15 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
                 #     instances
                 # )  # kpts offset + centerpoints
                 grasp_features_encoded = self.grasp_encoder(grasp_features)
-                x_concat = torch.cat((x_input_flattened, grasp_features_encoded), axis=1)
+                x_concat = torch.cat(
+                    (x_input_flattened, grasp_features_encoded), axis=1
+                )
                 mu, log_var = self.encoder(x_concat)  # batch size x num_latents
                 z = self.reparameterize(mu, log_var)  # batch size x num_latents
 
                 concatenated_embeddings = torch.cat((x_input_flattened, z), axis=1)
 
                 x_offset_output, x_cp_output = self.decoder(concatenated_embeddings)
-                import pdb; pdb.set_trace()
-
                 loss_dict = self.grasp_sampler_loss(
                     torch.cat((x_offset_output, x_cp_output), axis=1),
                     grasp_features,
@@ -250,7 +248,6 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
             -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
         # loss = recons_loss + kld_loss
-        import pdb; pdb.set_trace()
         return {"reconstruction_loss": recons_loss, "KLDivergence_loss": kld_loss}
 
     def grasp_sampler_inference(self, x_input, instances):

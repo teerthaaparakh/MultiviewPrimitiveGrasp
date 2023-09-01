@@ -156,7 +156,11 @@ def apply_augmentations(image: np.ndarray, depth: np.ndarray, all_object_grasp_d
         width=w,
     )
     if len(transformed_boxes) != len(transformed_kpts):
-        print(transformed_boxes.shape, transformed_kpts.shape, all_object_grasp_dict["kpts"].shape)
+        print(
+            transformed_boxes.shape,
+            transformed_kpts.shape,
+            all_object_grasp_dict["kpts"].shape,
+        )
         assert False
 
     transformed_ori = get_orientation_class(transformed_kpts.numpy())
@@ -171,9 +175,8 @@ def apply_augmentations(image: np.ndarray, depth: np.ndarray, all_object_grasp_d
         "scales": all_object_grasp_dict["scales"].float(),
         "grasp_widths": all_object_grasp_dict["grasp_widths"].float(),
         "bboxes": Boxes(torch.from_numpy(transformed_boxes)),
-        "category_ids": all_object_grasp_dict["category_ids"]
+        "category_ids": all_object_grasp_dict["category_ids"],
     }
-
 
     return transformed_image, transformed_depth, augmented_grasps_dict
 
@@ -184,14 +187,14 @@ def mapper(original_dataset_dict, draw=False, is_test=False):
 
     depth = np.load(dataset_dict["depth_file_name"])
     image = cv2.imread(dataset_dict["file_name"])[:, :, ::-1]
-    
+
     if len(depth.shape) == 2:
         depth = depth[..., None]
     if len(image.shape) == 2:
         image = image[..., None]
 
     h, w = image.shape[:2]
-    
+
     # logging.info("Number of channels in image:", image.shape[2])
 
     # num_instances == number of objects
@@ -229,15 +232,11 @@ def mapper(original_dataset_dict, draw=False, is_test=False):
     mapper_dict["category_ids"] = torch.tensor(
         mapper_dict["category_ids"], dtype=torch.long
     )
-    
+
     mapper_dict["bboxes"] = Boxes(torch.stack(mapper_dict["bboxes"]))
 
-    
     if is_test:
-        
-        image_input = np.concatenate(
-            (image / 255.0, depth), axis=2
-        ).transpose(2, 0, 1)
+        image_input = np.concatenate((image / 255.0, depth), axis=2).transpose(2, 0, 1)
         final_dict = copy.deepcopy(mapper_dict)
         transformed_image = image.transpose(2, 0, 1)
         transformed_depth = depth
@@ -256,7 +255,7 @@ def mapper(original_dataset_dict, draw=False, is_test=False):
         )
 
         image_input = np.concatenate(
-            (transformed_image / 255.0, transformed_depth[None , ...]), axis=0
+            (transformed_image / 255.0, transformed_depth[None, ...]), axis=0
         )
 
     new_dict = {

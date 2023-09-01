@@ -58,6 +58,6 @@ class Decoder(nn.Module):
 
         if not self.offsets:
             return result_cp
-        
+
         result_offset = self.final_layer_offset(result)
         return result_offset, result_cp

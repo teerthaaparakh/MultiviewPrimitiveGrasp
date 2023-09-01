@@ -111,18 +111,20 @@ class LossEvalHook(HookBase):
 
 
 class MyTrainer(DefaultTrainer):
-
     def build_hooks(self):
         hooks = super().build_hooks()
-        hooks.insert(-1,LossEvalHook(
-            self.cfg.TEST.EVAL_PERIOD,
-            self.model,
-            build_detection_test_loader(
-                self.cfg,
-                self.cfg.DATASETS.TEST[0],
-                lambda ddict: mapper(ddict, draw=False, is_test=True) 
-            )
-        ))
+        hooks.insert(
+            -1,
+            LossEvalHook(
+                self.cfg.TEST.EVAL_PERIOD,
+                self.model,
+                build_detection_test_loader(
+                    self.cfg,
+                    self.cfg.DATASETS.TEST[0],
+                    lambda ddict: mapper(ddict, draw=False, is_test=True),
+                ),
+            ),
+        )
         # swap the order of PeriodicWriter and ValidationLoss
         # code hangs with no GPUs > 1 if this line is removed
         hooks = hooks[:-2] + hooks[-2:][::-1]
@@ -130,15 +132,16 @@ class MyTrainer(DefaultTrainer):
 
     @classmethod
     def build_test_loader(cls, cfg, dataset_name):
-        m = lambda ddict: mapper(ddict, draw=False, is_test=True) 
+        m = lambda ddict: mapper(ddict, draw=False, is_test=True)
         return build_detection_test_loader(cfg, dataset_name, mapper=m)
 
     @classmethod
     def build_train_loader(cls, cfg):
-        m = lambda ddict: mapper(ddict, draw=False, is_test=False) 
-        
-        return build_detection_train_loader(cfg, mapper=m, 
-                                            dataset=DatasetCatalog.get(cfg.DATASETS.TRAIN[0]))
+        m = lambda ddict: mapper(ddict, draw=False, is_test=False)
+
+        return build_detection_train_loader(
+            cfg, mapper=m, dataset=DatasetCatalog.get(cfg.DATASETS.TRAIN[0])
+        )
 
     # @classmethod
     # def build_evaluator(cls, cfg, dataset_name):
@@ -207,4 +210,3 @@ def setup(device="cpu", config_fname=None):
 
     cfg.freeze()
     return cfg
-
