@@ -190,6 +190,7 @@ class CenterNet(nn.Module):
         )
 
         if not self.training:
+            
             return self.inference(
                 images, clss_per_level, reg_pred_per_level, agn_hm_pred_per_level, grids
             )

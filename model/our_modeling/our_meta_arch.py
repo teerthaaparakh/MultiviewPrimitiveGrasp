@@ -42,6 +42,7 @@ class MyGeneralizedRCNN(GeneralizedRCNN):
 
         features = self.backbone(images.tensor)
 
+        
         if self.proposal_generator is not None:
             proposals, proposal_losses = self.proposal_generator(
                 images, features, gt_instances

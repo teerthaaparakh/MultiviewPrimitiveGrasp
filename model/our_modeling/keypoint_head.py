@@ -258,7 +258,7 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         return {"reconstruction_loss": recons_loss, "KLDivergence_loss": kld_loss}
 
     def grasp_sampler_inference(self, input_image_features, instances):
-        print("in test", instances)
+       
         num_object_instances = len(input_image_features)
         # z = torch.randn(num_object_instances, self.latent_dim)
         z = self.inference_latent_sampler.sample((num_object_instances,))

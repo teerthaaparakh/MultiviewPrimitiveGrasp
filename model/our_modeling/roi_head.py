@@ -106,6 +106,10 @@ def select_proposals_with_visible_keypoints(
     storage.put_scalar("keypoint_head/num_fg_samples", np.mean(all_num_fg))
     return ret
 
+def select_inference_proposal(instances: List[Instances])-> List[Instances]:
+    for i in range(len(instances)):
+        instances[i].proposal_boxes.tensor[instances[i].proposal_boxes.tensor<0] = 0
+    return instances
 
 @ROI_HEADS_REGISTRY.register()
 class MyROIHeads(ROIHeads):
@@ -251,6 +255,8 @@ class MyROIHeads(ROIHeads):
             # head is only trained on positive proposals with >=1 visible keypoints.
             instances, _ = select_foreground_proposals(instances, self.num_classes)
 
+        else:
+            instances = select_inference_proposal(instances)
             # instances = select_proposals_with_visible_keypoints(instances)
         # import pdb; pdb.set_trace()
 
