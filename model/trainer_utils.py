@@ -97,8 +97,9 @@ class MyTrainer(DefaultTrainer):
                 build_detection_test_loader(
                     self.cfg,
                     self.cfg.DATASETS.TEST[0],
-                    lambda ddict: mapper(ddict, draw=False, is_test=True),
+                    lambda ddict: mapper(ddict, draw=False, is_test=False),
                 ),
+                
             ),
         )
         # swap the order of PeriodicWriter and ValidationLoss
@@ -140,7 +141,7 @@ def setup(device="cpu", config_fname=None):
     cfg.MODEL.DEVICE = device
     cfg.MODEL.WEIGHTS = get_pretrained_resnet_path()
     cfg.SOLVER.IMS_PER_BATCH = 4
-    cfg.SOLVER.MAX_ITER = 1  # 40000
+    cfg.SOLVER.MAX_ITER = 2  # 40000
     cfg.SOLVER.STEPS = (30000,)
     cfg.SOLVER.CHECKPOINT_PERIOD = 100
     cfg.MODEL.PIXEL_MEAN = (0, 0, 0, 0)  # (0.5, 0.5, 0.5, 0.1)
@@ -175,7 +176,7 @@ def setup(device="cpu", config_fname=None):
     cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_OUTPUTS = (
         NUM_BINS + NUM_BINS + NUM_BINS + NUM_BINS * 2 * 4 + 2
     )  # hm + width + scale + keypoint offset + center reg
-    cfg.TEST.EVAL_PERIOD = 1 # 1000000
+    cfg.TEST.EVAL_PERIOD = 2 # 1000000
     cfg.TEST.EVAL_SAVE_RESULTS = True
     if cfg.TEST.EVAL_SAVE_RESULTS:
         cfg.TEST.EVAL_OUTPUT_DIR = get_eval_output_dir()

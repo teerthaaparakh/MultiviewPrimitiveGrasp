@@ -54,8 +54,8 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         self.eval_save_results = eval_save_results
         self.eval_output_dir = eval_output_dir
         self.inference_latent_sampler = torch.distributions.normal.Normal(
-            torch.zeros(num_outputs_vae, dtype=torch.float32),
-            torch.ones(num_outputs_vae, dtype=torch.float32))
+            torch.zeros(latent_dim, dtype=torch.float32),
+            torch.ones(latent_dim, dtype=torch.float32))
 
         if self.use_vae:
             self.avg_pool = nn.AvgPool2d((input_shape.height, input_shape.width))
@@ -246,18 +246,24 @@ class MyKeypointHead(BaseKeypointRCNNHead, nn.Sequential):
         :return:
         """
         recons_loss = F.mse_loss(grasp_features_output, grasp_features_input)
+        # kld_loss = torch.mean(
+        #     -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+        # )
+        
+        
         kld_loss = torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+            torch.sum(log_var + (1+mu**2)/(2*log_var.exp()**2) - 0.5, dim=1), dim=0
         )
         # loss = recons_loss + kld_loss
         return {"reconstruction_loss": recons_loss, "KLDivergence_loss": kld_loss}
 
     def grasp_sampler_inference(self, input_image_features, instances):
-        # import pdb; pdb.set_trace()
+        print("in test", instances)
         num_object_instances = len(input_image_features)
         # z = torch.randn(num_object_instances, self.latent_dim)
         z = self.inference_latent_sampler.sample((num_object_instances,))
         x_concat = torch.cat((input_image_features, z), axis=1)
+        
         output = self.decoder(x_concat)
         post_process(output, instances)
 

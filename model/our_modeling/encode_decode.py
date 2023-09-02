@@ -35,6 +35,7 @@ class Decoder(nn.Module):
         self.num_outputs = num_outputs
         modules = []
         self.decoder_input = nn.Linear(self.in_dims, self.hidden_dims[-1])
+        modules.append(self.decoder_input)
         input_dim = self.hidden_dims[-1]
         self.hidden_dims.reverse()
         for i in range(len(self.hidden_dims) - 1):
@@ -51,9 +52,9 @@ class Decoder(nn.Module):
         )
 
     def forward(self, z):
-        # import pdb; pdb.set_trace()
-        backbone_features = self.decoder_input(z)
-        result = self.decoder(backbone_features)
+        
+        # backbone_features = self.decoder_input(z)
+        result = self.decoder(z)
         result_cp = self.final_layer_centerpoint(result)
 
         if not self.offsets:

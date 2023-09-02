@@ -52,6 +52,7 @@ def get_grasp_features_v2(instances, offsets=True):
     ret = []
     for inst in instances:
         # get the centers points location relative to bounding box
+        
         transformed_centerpoints = (
             inst.gt_centerpoints[:, :2] - inst.proposal_boxes.tensor[:, :2]
         )
