@@ -188,6 +188,8 @@ class CenterNet(nn.Module):
         shapes_per_level = grids[0].new_tensor(
             [(x.shape[2], x.shape[3]) for x in reg_pred_per_level]
         )
+        
+        
 
         if not self.training:
             

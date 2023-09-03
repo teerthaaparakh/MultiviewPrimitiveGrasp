@@ -60,9 +60,9 @@ class LossEvalHook(HookBase):
             losses.append(loss_batch)
         mean_loss = np.mean(losses)
         # logging.info(f"Validation loss: {mean_loss}")
-        print(f"Validation loss: {mean_loss}")
+        # print(f"Validation loss: {mean_loss}")
         self.trainer.storage.put_scalar("validation_loss", mean_loss)
-        # wandb.log({"validation_loss": mean_loss})
+        wandb.log({"validation_loss": mean_loss})
         comm.synchronize()
 
         return losses
@@ -74,7 +74,7 @@ class LossEvalHook(HookBase):
             k: v.detach().cpu().item() if isinstance(v, torch.Tensor) else float(v)
             for k, v in metrics_dict.items()
         }
-        print("eval loss dict : ", metrics_dict)
+        
         total_losses_reduced = sum(loss for loss in metrics_dict.values())
         return total_losses_reduced
 
@@ -103,8 +103,6 @@ class MyTrainer(DefaultTrainer):
                 
             ),
         )
-        # swap the order of PeriodicWriter and ValidationLoss
-        # code hangs with no GPUs > 1 if this line is removed
         hooks = hooks[:-2] + hooks[-2:][::-1]
         return hooks
 
@@ -141,16 +139,16 @@ def setup(device="cpu", config_fname=None):
     cfg.OUTPUT_DIR = get_output_dir()
     cfg.MODEL.DEVICE = device
     cfg.MODEL.WEIGHTS = get_pretrained_resnet_path()
-    cfg.SOLVER.IMS_PER_BATCH = 4
-    cfg.SOLVER.MAX_ITER = 2  # 40000
+    cfg.SOLVER.IMS_PER_BATCH = 32
+    cfg.SOLVER.MAX_ITER = 40000  # 40000
     cfg.SOLVER.STEPS = (30000,)
-    cfg.SOLVER.CHECKPOINT_PERIOD = 100
+    cfg.SOLVER.CHECKPOINT_PERIOD = 1000
     cfg.MODEL.PIXEL_MEAN = (0, 0, 0, 0)  # (0.5, 0.5, 0.5, 0.1)
     cfg.MODEL.PIXEL_STD = (1, 1, 1, 1)  # (0.01, 0.01, 0.01, 0.01)
     cfg.MODEL.CENTERNET.NUM_CLASSES = 6
     # cfg.MODEL.CENTERNET.POST_NMS_TOPK_TRAIN =
-    cfg.MODEL.CENTERNET.POST_NMS_TOPK_TEST = 50
-    cfg.MODEL.CENTERNET.INFERENCE_TH = 0.3
+    # cfg.MODEL.CENTERNET.POST_NMS_TOPK_TEST = 2000
+    # cfg.MODEL.CENTERNET.INFERENCE_TH = 0.3
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 6
     cfg.MODEL.KEYPOINT_ON = True
     cfg.MODEL.ROI_HEADS.NAME = "MyROIHeads"
@@ -178,7 +176,7 @@ def setup(device="cpu", config_fname=None):
     cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_OUTPUTS = (
         NUM_BINS + NUM_BINS + NUM_BINS + NUM_BINS * 2 * 4 + 2
     )  # hm + width + scale + keypoint offset + center reg
-    cfg.TEST.EVAL_PERIOD = 2 # 1000000
+    cfg.TEST.EVAL_PERIOD = 5000 # 1000000
     cfg.TEST.EVAL_SAVE_RESULTS = True
     if cfg.TEST.EVAL_SAVE_RESULTS:
         cfg.TEST.EVAL_OUTPUT_DIR = get_eval_output_dir()

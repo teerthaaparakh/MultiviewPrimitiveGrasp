@@ -29,12 +29,22 @@ if __name__ == "__main__":
     args = default_argument_parser()
     Instances.__getitem__ = __newgetitem__
 
+
     args = args.parse_args()
-    args.num_gpus = 1
-    if args.config_file:
-        cfg = setup(args.config_file)
+    
+    if torch.cuda.is_available():
+        device = "cuda"
+        args.num_gpus = torch.cuda.device_count()
+        print(f"cuda found !!!!!!!!!, {args.num_gpus}")
     else:
-        cfg = setup()
+        device = "cpu"
+        args.num_gpus = 0
+        
+    
+    if args.config_file:
+        cfg = setup(device, args.config_file)
+    else:
+        cfg = setup(device)
 
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
 
@@ -57,4 +67,4 @@ if __name__ == "__main__":
     #            in keypoint_rcnn_loss
     trainer.train()
 
-    # wandb.finish()
+    wandb.finish()

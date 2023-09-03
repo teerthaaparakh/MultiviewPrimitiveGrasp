@@ -46,7 +46,7 @@ def mapper(original_dataset_dict, draw=False, is_test=False):
                 T.RandomRotation([-90.0, 90.0], 
                             expand=True, center=[[0.3, 0.3], [0.7, 0.7]], 
                             sample_style="range"),
-                            prob=0.5)
+                            prob=0.7)
         ]
     )
 
