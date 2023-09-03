@@ -124,6 +124,10 @@ def apply_augmentations(augs: T.AugmentationList, image: np.ndarray,
     
     for idx in range(num_instances):
 
+        obj_index = annotations[idx]["obj_index"]
+        if not ((obj_index + 1) in transformed_boxes):
+            continue
+
         valid, (trans_kpts, trans_center_kpts, trans_ori) = transform_instance_grasps(
             transform,
             kpts=torch.from_numpy(annotations[idx]["kpts"]),
@@ -134,7 +138,7 @@ def apply_augmentations(augs: T.AugmentationList, image: np.ndarray,
             filter=True
         )
         # the segmentation masks start from 1, so adding one to the index
-        instance_box = transformed_boxes[annotations[idx]["obj_index"] + 1]
+        instance_box = transformed_boxes[obj_index + 1]
         if get_area(instance_box) > 100 and len(valid)>0:
             # print("instance not skipped")
             # TODO (MP): check whether indexing using `valid` is happening properly
