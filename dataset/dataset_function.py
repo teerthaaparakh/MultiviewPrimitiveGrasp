@@ -1,6 +1,8 @@
 import numpy as np
 import sys
 import os, os.path as osp
+sys.path.append(os.environ["KGN_DIR"])
+
 import typing as T
 import pickle
 from utils.path_util import get_pickled_data_dir, get_data_dir
@@ -11,7 +13,7 @@ import logging
 from glob import glob
 import numpy as np
 
-sys.path.append(os.environ["KGN_DIR"])
+
 from utils.util import get_area
 from utils.other_configs import *
 from glob import glob
@@ -244,3 +246,8 @@ def load_dataset_wrapper(t="train"):
 
     logging.info(f"Dataset {name}_{t} loaded. Length of dataset: {len(result)}")
     return result
+
+
+
+if __name__=="__main__":
+    load_dataset_wrapper()

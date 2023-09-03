@@ -30,6 +30,15 @@ def mapper(original_dataset_dict, draw=False, is_test=False):
 
     # apply augmentations
     # final dict has the same keys as in mapper dict
+    # augs = T.AugmentationList(
+    #     [
+    #         # T.RandomFlip(prob=1.0),
+    #         T.RandomRotation([-90.0, 90.0], 
+    #                             expand=True, center=[[0.3, 0.3], [0.7, 0.7]], 
+    #                             sample_style="range")
+    #     ]
+    # )
+    
     augs = T.AugmentationList(
         [
             T.RandomFlip(prob=0.5),

@@ -32,6 +32,7 @@ class MyGeneralizedRCNN(GeneralizedRCNN):
         """
 
         if not self.training:
+            import pdb; pdb.set_trace()
             return self.inference(batched_inputs, do_postprocess=False)
 
         images = self.preprocess_image(batched_inputs)
@@ -42,7 +43,7 @@ class MyGeneralizedRCNN(GeneralizedRCNN):
 
         features = self.backbone(images.tensor)
 
-        
+        import pdb; pdb.set_trace()
         if self.proposal_generator is not None:
             proposals, proposal_losses = self.proposal_generator(
                 images, features, gt_instances

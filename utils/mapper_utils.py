@@ -72,13 +72,16 @@ def transform_instance_grasps(
     transformed_centers = (filtered_coords[:, 0] + filtered_coords[:, 3]) / 2
     transformed_centers = torch.cat((transformed_centers, centers[valid][:, 2:3]), axis=1).unsqueeze(1)
 
+    # print("scales original shape", scales.shape)
+    scales = scales[valid].reshape((-1, 1, 1))
 
     # transformed_centers = transform_instance_centerpoints(transforms, copy.deepcopy(centers))
-
+    
     # obtaining offsets again
     transformed_offsets = filtered_coords - transformed_centers[:, :, :2]
+    # print("done", transformed_offsets.shape, scales.shape, valid.shape)
     transformed_offsets = (
-        transformed_offsets * scales[valid].reshape((-1, 1, 1)) / NORMALIZATION_CONST
+        transformed_offsets * scales / NORMALIZATION_CONST
     )
 
     new_keypoints = torch.cat(
@@ -132,8 +135,8 @@ def apply_augmentations(augs: T.AugmentationList, image: np.ndarray,
         )
         # the segmentation masks start from 1, so adding one to the index
         instance_box = transformed_boxes[annotations[idx]["obj_index"] + 1]
-        if get_area(instance_box) > 100:
-
+        if get_area(instance_box) > 100 and len(valid)>0:
+            # print("instance not skipped")
             # TODO (MP): check whether indexing using `valid` is happening properly
             # or not
             grasp_widths = torch.from_numpy(annotations[idx]["grasp_widths"])[valid]
