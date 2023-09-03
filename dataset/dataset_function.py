@@ -209,7 +209,8 @@ def load_dataset_wrapper(t="train"):
             result = pickle.load(f)
     else:
         logging.warn(f"Dataset {name} pickle not found. Generating ...")
-
+        os.makedirs(get_pickled_data_dir(), exist_ok=True)
+        
         initial_data_dir = get_data_dir()
         _scene_dirs = glob(initial_data_dir + "/*/color_images")
         scene_dirs = [s.split(os.sep)[-2] for s in _scene_dirs]
@@ -227,7 +228,6 @@ def load_dataset_wrapper(t="train"):
             get_data_dir(), exclusively=chosen_for_validation, num_samples=100000
         )
 
-        os.makedirs(get_pickled_data_dir())
         train_path = osp.join(get_pickled_data_dir(), f"{name}_train.pkl")
         val_path = osp.join(get_pickled_data_dir(), f"{name}_val.pkl")
 

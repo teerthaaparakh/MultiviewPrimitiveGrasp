@@ -12,7 +12,7 @@ from detectron2.data import transforms as T
 
 from dataset.dataset_function_util import visualize_mapper_dict, visualize_datapoint
 
-def mapper_v2(original_dataset_dict, draw=False, is_test=False):
+def mapper(original_dataset_dict, draw=False, is_test=False):
     dataset_dict = copy.deepcopy(original_dataset_dict)
     depth = np.load(dataset_dict["depth_file_name"])
     image = cv2.imread(dataset_dict["file_name"])[:, :, ::-1]
@@ -32,10 +32,12 @@ def mapper_v2(original_dataset_dict, draw=False, is_test=False):
     # final dict has the same keys as in mapper dict
     augs = T.AugmentationList(
         [
-            # T.RandomFlip(prob=1.0),
-            T.RandomRotation([-90.0, 90.0], 
-                                expand=True, center=[[0.3, 0.3], [0.7, 0.7]], 
-                                sample_style="range")
+            T.RandomFlip(prob=0.5),
+            T.RandomApply(
+                T.RandomRotation([-90.0, 90.0], 
+                            expand=True, center=[[0.3, 0.3], [0.7, 0.7]], 
+                            sample_style="range"),
+                            prob=0.5)
         ]
     )
 

@@ -20,7 +20,7 @@ setup_logger()
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultTrainer
 from detectron2.data import build_detection_train_loader, build_detection_test_loader
-from dataset.dataset_mapper_v2 import mapper
+from dataset.dataset_mapper_v3 import mapper
 from utils.other_configs import *
 import wandb
 from detectron2.engine.hooks import HookBase

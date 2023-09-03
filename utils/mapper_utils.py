@@ -78,7 +78,7 @@ def transform_instance_grasps(
     # obtaining offsets again
     transformed_offsets = filtered_coords - transformed_centers[:, :, :2]
     transformed_offsets = (
-        transformed_offsets * scales.reshape((-1, 1, 1)) / NORMALIZATION_CONST
+        transformed_offsets * scales[valid].reshape((-1, 1, 1)) / NORMALIZATION_CONST
     )
 
     new_keypoints = torch.cat(
