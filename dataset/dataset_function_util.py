@@ -304,10 +304,12 @@ def visualize_mapper_dict(new_dict, name):
     os.makedirs(get_debug_img_dir(), exist_ok=True)
     instances = new_dict["instances"]
     bboxes = instances.gt_boxes.tensor
+    classes = instances.gt_classes
     gt_keypoints = instances.gt_keypoints
     gt_centerpoints = instances.gt_centerpoints
     gt_scales = instances.gt_scales
     gt_orientations = instances.gt_orientations
+
 
     for idx in range(len(bboxes)):
         grasp_dict = {
@@ -317,12 +319,21 @@ def visualize_mapper_dict(new_dict, name):
             "orientation_bin": gt_orientations[idx].item(),
         }
         bbox = bboxes[idx].numpy().astype(np.uint16)
-
         # print("grasp_dict:")
         # print(f"    {grasp_dict}")
         # print(f"bbox: {bbox}")
 
         rgb = cv2.rectangle(rgb, bbox[:2], bbox[2:], color=(127, 0, 255), thickness=1)
+        rgb = cv2.putText(
+            rgb,
+            REVERSE_OBJECT_DICTS[classes[idx].item()],
+            tuple((bbox[:2] + bbox[2:]) // 2),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.4,
+            (255, 127, 0),
+            1,
+            cv2.LINE_AA,
+        )
 
         # print("grasp dict", grasp_dict)
         rgb = draw_grasp_on_image(rgb, grasp_dict)

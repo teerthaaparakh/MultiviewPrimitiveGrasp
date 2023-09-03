@@ -15,6 +15,15 @@ OBJECT_DICTS = {
     "stick": 5,
 }
 
+REVERSE_OBJECT_DICTS = {
+    0: "semi_sphere",
+    1: "sphere",
+    2: "cuboid",
+    3: "ring",
+    4: "cylinder",
+    5: "stick",
+}
+
 NUM_TRAINING_DATA = 1000
 NUM_TEST_DATA = 10
 

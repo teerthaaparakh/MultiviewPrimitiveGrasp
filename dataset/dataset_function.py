@@ -49,6 +49,7 @@ def get_scene_data_item(scene_data, bboxes, rgb, depth, cam_extr, cam_intr, inde
         "obj_pose": obj_pose,
         "obj_dim": obj_dim,
         "obj_type": obj_type,
+        "obj_index": index,
         "orientations": processed_grasps_dict["orientation_bin"][valid],
         "center_kpts": processed_grasps_dict["center_2d"][valid],
         "kpts": processed_grasps_dict["offset_kpts"][valid],
@@ -59,14 +60,8 @@ def get_scene_data_item(scene_data, bboxes, rgb, depth, cam_extr, cam_intr, inde
     }
     return obj_dict
 
-
-def generate_bbox(seg_img_path):
-    """
-    for the particular image, returns a dictionary
-    with keys being the object ids, and the values being the bbs for
-    the corresponding mask
-    """
-    seg_img = cv2.imread(seg_img_path, cv2.IMREAD_UNCHANGED)
+def generate_bbox_from_seg(seg_img):
+    # assuming 0 is the background
     indices = np.unique(seg_img)[1:]
 
     ll = {}
@@ -79,6 +74,15 @@ def generate_bbox(seg_img_path):
             ll[idx] = bb
 
     return ll
+
+def generate_bbox(seg_img_path):
+    """
+    for the particular image, returns a dictionary
+    with keys being the object ids, and the values being the bbs for
+    the corresponding mask
+    """
+    seg_img = cv2.imread(seg_img_path, cv2.IMREAD_UNCHANGED)
+    return generate_bbox_from_seg(seg_img)
 
 
 def get_scene_and_image_id(color_image_path):
@@ -175,7 +179,7 @@ def load_dataset(
         for j in range(num_objs):
             # TODO (TP): good to have a comment here for what these
             # two conditions are checking
-            if (j + 1 in bboxes) and (get_area(bboxes[j + 1]) > 50):
+            if (j + 1 in bboxes) and (get_area(bboxes[j + 1]) > 100):
                 obj_dict = get_scene_data_item(
                     scene_data,
                     bboxes,
