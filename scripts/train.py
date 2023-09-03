@@ -49,14 +49,14 @@ if __name__ == "__main__":
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
 
     # # uncomment the following lines for running with wandb logging
-    # wandb.tensorboard.patch(root_logdir=cfg.OUTPUT_DIR)
-    # wandb.init(
-    #     name="KGN",
-    #     project="Original KGN",
-    #     settings=wandb.Settings(start_method="thread", console="off"),
-    #     sync_tensorboard=True,
-    #     mode="offline",
-    # )
+    wandb.tensorboard.patch(root_logdir=cfg.OUTPUT_DIR)
+    wandb.init(
+        name="KGN",
+        project="Original KGN",
+        settings=wandb.Settings(start_method="thread", console="off"),
+        sync_tensorboard=True,
+        mode="offline",
+    )
 
     trainer = MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
