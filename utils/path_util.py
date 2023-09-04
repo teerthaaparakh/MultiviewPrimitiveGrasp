@@ -40,6 +40,8 @@ def get_debug_img_dir_orig():
 def get_output_dir():
     return osp.join(get_src_dir(), "output/KGN")
 
+def get_trained_model_path():
+    return osp.join(get_output_dir(), "model_0000999.pth")
 
 def get_eval_output_dir():
     return osp.join(get_src_dir(), "eval_output")

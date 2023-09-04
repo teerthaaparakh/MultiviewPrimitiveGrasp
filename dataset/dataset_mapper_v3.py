@@ -15,7 +15,7 @@ from dataset.dataset_function_util import visualize_mapper_dict, visualize_datap
 def mapper(original_dataset_dict, draw=False, is_test=False):
     dataset_dict = copy.deepcopy(original_dataset_dict)
     depth = np.load(dataset_dict["depth_file_name"])
-    image = cv2.imread(dataset_dict["file_name"])[:, :, ::-1]
+    image = cv2.imread(dataset_dict["file_name"])[:, :, ::-1]  #RGB
     seg = cv2.imread(dataset_dict["seg_file_name"], cv2.IMREAD_UNCHANGED)
     seg = seg.astype(np.uint8)
 
