@@ -157,8 +157,6 @@ def load_dataset(
             "depth_file_name": os.path.join(
                 scene_path, f"depth_raw/depth_raw_{img_id}.npy"
             ),
-            "height": 480,
-            "width": 640,
             "image_id": idx,
             "seg_file_name": os.path.join(
                 scene_path, f"seg_labels/segmask_label_{img_id}.jpg"
@@ -170,6 +168,11 @@ def load_dataset(
 
         rgb = cv2.imread(current_dict["file_name"])
         depth = np.load(current_dict["depth_file_name"])
+        
+        rgb_shape = rgb.shape
+        
+        current_dict["height"] = rgb_shape[0]
+        current_dict["width"] = rgb_shape[1]
 
         # grasp level information in the annotations list of dicts
         annotations = []

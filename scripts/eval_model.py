@@ -10,6 +10,7 @@ import torch
 import cv2
 from matplotlib import pyplot as plt
 import pickle
+import matplotlib.patches as patches
 
 
     
@@ -55,6 +56,8 @@ class DefaultPredictor:
 
             inputs = {"image": torch.from_numpy(rgbd).float(), "rgb": image, "depth":depth,
                             "height": height, "width": width}
+            
+            
             predictions = self.model([inputs])[0]
             
             if visualize:
@@ -64,8 +67,18 @@ class DefaultPredictor:
                 fig, ax = plt.subplots()
                 im = ax.imshow(original_image)
 
+                bboxes = predictions.proposal_boxes.tensor
+                for i in range(len(bboxes)):
+                    bbox = bboxes[i]
+                    box_h = bbox[3] - bbox[1]
+                    box_w = bbox[2] - bbox[0]
+                    rect = patches.Rectangle((bbox[0], bbox[1]),box_w , box_h, linewidth=1, edgecolor='r', facecolor='none')
+                    ax.add_patch(rect)
+                    
                 cp = predictions.center_pred
-                ax.plot(cp[:,0], cp[:,1], ls='dotted', linewidth=2, color='red')
+                ax.scatter(cp[:,0], cp[:,1])
+                # ax.plot(cp[:,0], cp[:,1], ls='dotted', linewidth=2, color='red')
+                
                 fig.savefig(os.path.join(save_dir, file_name))
                 plt.close(fig)
                 
@@ -81,7 +94,6 @@ class DefaultPredictor:
             
             return predictions
         
-
             
 if __name__=="__main__":
     
