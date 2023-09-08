@@ -152,10 +152,8 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-dataset/ps_grasp_multi_1k
-output
-modeling
-temp_images
+data/ps_grasp_multi_1k
+data/pickled_dataset
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
