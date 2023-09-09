@@ -152,6 +152,8 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+dataset
+data
 dataset/ps_grasp_multi_1k
 dataset/ps_grasp_single_1k
 docs
