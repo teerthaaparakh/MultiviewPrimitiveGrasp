@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import os
-
+from data.keypoints import get_kpts_2d, get_kpts_3d, get_kpts_2d_detectron 
 from utils.global_utils import NUM_BINS 
 
 
@@ -28,10 +28,10 @@ def get_obj_scene_dict(scene_data, bboxes, depth, cam_extr, cam_intr, index):
 
     num_grasps = len(per_obj_grasp_poses)
     for idx in range(num_grasps):
-        kpts_3d_cam = get_kpts_3d(poses[idx], per_obj_grasp_widths, cam_extr=cam_extr, world=False)
+        kpts_3d_cam = get_kpts_3d(per_obj_grasp_poses[idx], per_obj_grasp_widths[idx], cam_extr=cam_extr, world=False)
         kpts_2d = get_kpts_2d(kpts_3d_cam, cam_intr=cam_intr)
         grasp_dict = get_kpts_2d_detectron(kpts_2d, kpts_3d_cam, depth) #returns "offset_kpts", "center_2d", "scale", "valid",
-        grasp_dict["grasp_width"] = per_obj_grasp_widths
+        grasp_dict["grasp_width"] = per_obj_grasp_widths[idx]
 
     # converting all to numpy arrays
     for k, v in grasp_dict.items():

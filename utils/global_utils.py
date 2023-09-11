@@ -1,1 +1,2 @@
 NUM_BINS = 9
+STICK_LEN = 0.08

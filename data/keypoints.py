@@ -1,3 +1,10 @@
+import torch
+import numpy as np
+import sys, os
+sys.path.append(os.environ["KGN_DIR"])
+from utils.global_utils import *
+import logging
+
 def get_kpts_3d(pose, width, cam_extr, world=False):
     """
     pose: 4x4 single grasp pose
@@ -6,7 +13,7 @@ def get_kpts_3d(pose, width, cam_extr, world=False):
         kpts_3d: 3x4 (xyz for each of the four keypoints)
     """
     # width = CANONICAL_LEN
-    length = STICK_LEN * 3 / 4.0
+    length = STICK_LEN 
     kpts_local_vertex = [
         [0, 0, width / 2],
         [-length, 0, width / 2],
@@ -119,7 +126,7 @@ def get_kpts_2d_detectron(
 
         clipped_kpts_2d = np.stack((px, py), axis=-1)
         # offsets = scale * (clipped_kpts_2d - center_2d) / np.array([w, h])
-        offsets = scale * (clipped_kpts_2d - center_2d) / NORMALIZATION_CONST
+        offsets = clipped_kpts_2d - center_2d
 
         assert offsets.shape == (4, 2)
 

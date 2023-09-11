@@ -1,34 +1,19 @@
-import numpy as np
-import sys
-import os, os.path as osp
-
-from data.bboxes import generate_bbox
-from data.data_utils import get_scene_data_item
+import sys, os, os.path as osp
 sys.path.append(os.environ["KGN_DIR"])
 
-import typing as T
+from utils.path_utils import get_pickled_data_dir, get_data_dir
 import pickle
-from utils.path_util import get_pickled_data_dir, get_data_dir
-
-# from dataset.dataset_function import load_dataset
-import random
 import logging
 from glob import glob
-import numpy as np
-
-
-from utils.util import get_area
-from utils.other_configs import *
-from glob import glob
-import json
-from detectron2.structures import BoxMode
-import cv2
-from utils.seg import get_bb
-from dataset.dataset_function_util import (
-    get_per_obj_processed_grasps,
-    visualize_datapoint,
-)
 import random
+import json
+import cv2
+import numpy as np
+import typing as T
+from data.data_utils import get_scene_and_image_id
+from data.bboxes import generate_bbox, get_area
+from data.data_utils import get_obj_scene_dict
+
 
 def load_dataset_wrapper(t="train"):
     name = "VAE"
@@ -159,6 +144,7 @@ def load_dataset(
 
         bboxes = generate_bbox(current_dict["seg_file_name"])
         num_objs = len(scene_data["grasp_poses"])
+        import pdb; pdb.set_trace()
         # bowl, small cylinder,  cuboid, big cylinder, stick
         for j in range(num_objs):
             # TODO (TP): good to have a comment here for what these
@@ -181,3 +167,8 @@ def load_dataset(
         list_dict.append(current_dict)
 
     return list_dict
+
+
+if __name__=="__main__":
+    
+    load_dataset_wrapper()

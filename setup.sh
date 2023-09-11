@@ -1,0 +1,1 @@
+export KGN_DIR=$PWD
